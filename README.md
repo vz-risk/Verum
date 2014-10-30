@@ -3,9 +3,6 @@ Verum
 
 Implementation of Context-Graph algorithms for graph enrichment and querying. 
 
-See https://securityblog.verizonenterprise.com/?p=6501 for an explanation of the context graph system and
-https://securityblog.verizonenterprise.com/?p=6403 for an example application.
-
 Context Graph Enrichment:
 cg_enrich.py provides functions to enrich the context graph.
 
