@@ -783,3 +783,14 @@ def whois_record(record, start_time=""):
     g.add_edge(domain_uri, whois_record_uri, edge_uri, edge_attr)
 
     return g
+
+
+def dns_enrichment(domain, start_time=""):
+    """
+
+    :param domain: a string containing a domain to lookup up
+    :param start_time: A default start time
+    :return: a networkx graph representing the response.
+    """
+    pass
+    # TODO
