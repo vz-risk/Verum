@@ -174,11 +174,11 @@ def exponential_weight(distance, b=2):
 ### QUERY FULL GRAPH ###
 
 
-def create_topic(properties, graph="vzgraph"):
+def create_topic(properties, prefix=""):
     """
 
     :param properties: A dictionary of properties
-    :param graph: string representing the name of the titan graph the topic will be queried against
+    :param prefix: If nodes are stored with a pref
     :return: A topic graph in networkx format with one node per property
 
     NOTE: If multiple values of a certain type, (e.g. multiple IPs) make the value of the type
@@ -195,7 +195,7 @@ def create_topic(properties, graph="vzgraph"):
     for key, value in iterator:
         if type(value) in (list, set, np.ndarray):
             for v in value:
-                node_uri = "{2}:?class=attribute&key={0}&value={1}".format(key, v, graph)
+                node_uri = "{2}class=attribute&key={0}&value={1}".format(key, v, prefix)
                 g.add_node(node_uri, {
                     'class': 'attribute',
                     'key': key,
@@ -203,7 +203,7 @@ def create_topic(properties, graph="vzgraph"):
                     'uri': node_uri
                 })
         else:
-            node_uri = "{2}:?class=attribute&key={0}&value={1}".format(key, value, graph)
+            node_uri = "{2}class=attribute&key={0}&value={1}".format(key, value, prefix)
             g.add_node(node_uri, {
                 'class': 'attribute',
                 'key': key,

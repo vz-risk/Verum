@@ -272,7 +272,7 @@ def cymru_enrichment(ips, start_time = ""):
     g = nx.MultiDiGraph()
 
     # Create cymru ASN enrichment node
-    cymru_asn_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "cymru_asn_enrichment")
+    cymru_asn_uri = "class=attribute&key={0}&value={1}".format("enrichment", "cymru_asn_enrichment")
     attributes = {
         'class': 'attribute',
         'key': 'enrichment',
@@ -292,7 +292,7 @@ def cymru_enrichment(ips, start_time = ""):
         except:
             t = ''
         # Create ip's node
-        ip_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("ip", result.ip_address)
+        ip_uri = "class=attribute&key={0}&value={1}".format("ip", result.ip_address)
         g.add_node(ip_uri, {
             'class': 'attribute',
             'key': "ip",
@@ -309,7 +309,7 @@ def cymru_enrichment(ips, start_time = ""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, cymru_asn_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -321,7 +321,7 @@ def cymru_enrichment(ips, start_time = ""):
 
 
         # Create bgp prefix node
-        bgp_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("bgp", result.bgp_prefix)
+        bgp_uri = "class=attribute&key={0}&value={1}".format("bgp", result.bgp_prefix)
         attributes = {
             'class': 'attribute',
             'key': 'bgp',
@@ -339,7 +339,7 @@ def cymru_enrichment(ips, start_time = ""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, bgp_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -351,7 +351,7 @@ def cymru_enrichment(ips, start_time = ""):
 
 
         # create asn node
-        asn_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("asn", result.as_number)
+        asn_uri = "class=attribute&key={0}&value={1}".format("asn", result.as_number)
         attributes = {
             'class': 'attribute',
             'key': 'asn',
@@ -373,7 +373,7 @@ def cymru_enrichment(ips, start_time = ""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, asn_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -407,7 +407,7 @@ def maxmind_enrichment(ip, start_time = "", dat_file = MAXMIND_FILE):
 
     g = nx.MultiDiGraph()
     # Create the maxmind ASN node
-    maxmind_asn_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "maxmind_asn")  # Move prefix assignment to merge_titan
+    maxmind_asn_uri = "class=attribute&key={0}&value={1}".format("enrichment", "maxmind_asn")  # Move prefix assignment to merge_titan
     g.add_node(maxmind_asn_uri, {
         'class': 'attribute',
         'key': "enrichment",
@@ -417,7 +417,7 @@ def maxmind_enrichment(ip, start_time = "", dat_file = MAXMIND_FILE):
     })
 
     # set IP URI
-    ip_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("ip", ip)
+    ip_uri = "class=attribute&key={0}&value={1}".format("ip", ip)
     g.add_node(ip_uri, {
         'class': 'attribute',
         'key': "ip",
@@ -432,7 +432,7 @@ def maxmind_enrichment(ip, start_time = "", dat_file = MAXMIND_FILE):
         ASN = ASN.split(" ", 1)
 
         # create ASN node
-        asn_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("asn", ASN[0][2:])
+        asn_uri = "class=attribute&key={0}&value={1}".format("asn", ASN[0][2:])
         attributes = {
             'class': 'attribute',
             'key': 'asn',
@@ -452,7 +452,7 @@ def maxmind_enrichment(ip, start_time = "", dat_file = MAXMIND_FILE):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, asn_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -471,7 +471,7 @@ def maxmind_enrichment(ip, start_time = "", dat_file = MAXMIND_FILE):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, maxmind_asn_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -527,7 +527,7 @@ def whois_record(record, start_time=""):
 
 
     # Get or create Domain node
-    domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", record[2])
+    domain_uri = "class=attribute&key={0}&value={1}".format("domain", record[2])
     g.add_node(domain_uri, {
         'class': 'attribute',
         'key': "domain",
@@ -541,7 +541,7 @@ def whois_record(record, start_time=""):
         return g
 
     # Get or create Enrichment node
-    whois_record_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "whois_record")
+    whois_record_uri = "class=attribute&key={0}&value={1}".format("enrichment", "whois_record")
     g.add_node(whois_record_uri, {
         'class': 'attribute',
         'key': "enrichment",
@@ -552,7 +552,7 @@ def whois_record(record, start_time=""):
 
     if record[3] and record[3].lower() != 'none':
         # Registrant Name node
-        name_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("name", record[3].encode("ascii", "ignore"))
+        name_uri = "class=attribute&key={0}&value={1}".format("name", record[3].encode("ascii", "ignore"))
         g.add_node(name_uri, {
             'class': 'attribute',
             'key': "name",
@@ -570,7 +570,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, name_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -582,7 +582,7 @@ def whois_record(record, start_time=""):
 
     if record[4] and record[4].lower() != 'none':
         # Registrant Organization Node
-        reg_org_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("organization", record[4].encode("ascii", "ignore"))
+        reg_org_uri = "class=attribute&key={0}&value={1}".format("organization", record[4].encode("ascii", "ignore"))
         g.add_node(reg_org_uri, {
             'class': 'attribute',
             'key': "organization",
@@ -600,7 +600,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -612,7 +612,7 @@ def whois_record(record, start_time=""):
 
     if record[5] and record[5].lower() != 'none':
         # Registrant Organization Address Node
-        reg_org_addr_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("address", record[5].encode("ascii", "ignore"))
+        reg_org_addr_uri = "class=attribute&key={0}&value={1}".format("address", record[5].encode("ascii", "ignore"))
         g.add_node(reg_org_addr_uri, {
             'class': 'attribute',
             'key': "address",
@@ -630,7 +630,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_addr_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -642,7 +642,7 @@ def whois_record(record, start_time=""):
 
     if record[6] and record[6].lower() != 'none':
         # Registrant Organization City Node
-        reg_org_city_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("city", record[6].encode("ascii", "ignore").lower())
+        reg_org_city_uri = "class=attribute&key={0}&value={1}".format("city", record[6].encode("ascii", "ignore").lower())
         g.add_node(reg_org_city_uri, {
             'class': 'attribute',
             'key': "city",
@@ -660,7 +660,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_city_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -677,7 +677,7 @@ def whois_record(record, start_time=""):
         else:
             state = record[7]
         # Registrant Organization State Node
-        reg_org_state_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("state", state.encode("ascii", "ignore").lower())
+        reg_org_state_uri = "class=attribute&key={0}&value={1}".format("state", state.encode("ascii", "ignore").lower())
         g.add_node(reg_org_state_uri, {
             'class': 'attribute',
             'key': "state",
@@ -695,7 +695,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_state_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -707,7 +707,7 @@ def whois_record(record, start_time=""):
 
     if record[8] and record[8].lower() != 'none':
     # Registrant Organization Country Node
-        reg_org_country_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("country", record[8].encode("ascii", "ignore").lower())
+        reg_org_country_uri = "class=attribute&key={0}&value={1}".format("country", record[8].encode("ascii", "ignore").lower())
         g.add_node(reg_org_country_uri, {
             'class': 'attribute',
             'key': "country",
@@ -725,7 +725,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_country_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -737,7 +737,7 @@ def whois_record(record, start_time=""):
 
     if record[9] and record[9].lower() != 'none':
         # Registrant Organization email Node
-        reg_org_email_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("email_address", record[9].encode("ascii", "ignore"))
+        reg_org_email_uri = "class=attribute&key={0}&value={1}".format("email_address", record[9].encode("ascii", "ignore"))
         g.add_node(reg_org_email_uri, {
             'class': 'attribute',
             'key': "email_address",
@@ -755,7 +755,7 @@ def whois_record(record, start_time=""):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_email_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -773,7 +773,7 @@ def whois_record(record, start_time=""):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, whois_record_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -797,7 +797,7 @@ def dns_enrichment(domain):
     g = nx.MultiDiGraph()
 
     # Get or create Domain node
-    domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", domain)
+    domain_uri = "class=attribute&key={0}&value={1}".format("domain", domain)
     g.add_node(domain_uri, {
         'class': 'attribute',
         'key': "domain",
@@ -807,7 +807,7 @@ def dns_enrichment(domain):
     })
 
     # Get or create Enrichment node
-    dns_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "dns")
+    dns_uri = "class=attribute&key={0}&value={1}".format("enrichment", "dns")
     g.add_node(dns_uri, {
         'class': 'attribute',
         'key': "enrichment",
@@ -816,7 +816,7 @@ def dns_enrichment(domain):
         "uri": dns_uri
     })
 
-    ip_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("ip", ip)
+    ip_uri = "class=attribute&key={0}&value={1}".format("ip", ip)
     g.add_node(ip_uri, {
         'class': 'attribute',
         'key': "ip",
@@ -833,7 +833,7 @@ def dns_enrichment(domain):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -851,7 +851,7 @@ def dns_enrichment(domain):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dns_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -877,7 +877,7 @@ def tld_enrichment(domain, include_subdomain=False):
     g = nx.MultiDiGraph()
 
     # Get or create Domain node
-    domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", domain)
+    domain_uri = "class=attribute&key={0}&value={1}".format("domain", domain)
     g.add_node(domain_uri, {
         'class': 'attribute',
         'key': "domain",
@@ -887,7 +887,7 @@ def tld_enrichment(domain, include_subdomain=False):
     })
 
     # Get or create Enrichment node
-    tld_extract_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "tld_extract")
+    tld_extract_uri = "class=attribute&key={0}&value={1}".format("enrichment", "tld_extract")
     g.add_node(tld_extract_uri, {
         'class': 'attribute',
         'key': "enrichment",
@@ -897,7 +897,7 @@ def tld_enrichment(domain, include_subdomain=False):
     })
 
     # Get or create TLD node
-    tld_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.suffix)
+    tld_uri = "class=attribute&key={0}&value={1}".format("domain", ext.suffix)
     g.add_node(tld_uri, {
         'class': 'attribute',
         'key': "domain",
@@ -915,7 +915,7 @@ def tld_enrichment(domain, include_subdomain=False):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -927,7 +927,7 @@ def tld_enrichment(domain, include_subdomain=False):
 
 
     # Get or create mid domain node
-    mid_domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.domain)
+    mid_domain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.domain)
     g.add_node(mid_domain_uri, {
         'class': 'attribute',
         'key': "domain",
@@ -945,7 +945,7 @@ def tld_enrichment(domain, include_subdomain=False):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, mid_domain_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -959,7 +959,7 @@ def tld_enrichment(domain, include_subdomain=False):
     # if including subdomains, create subdomain and node
     if include_subdomain:
         # Get or create mid domain node
-        subdomain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.subdomain)
+        subdomain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.subdomain)
         g.add_node(subdomain_uri, {
             'class': 'attribute',
             'key': "domain",
@@ -977,7 +977,7 @@ def tld_enrichment(domain, include_subdomain=False):
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, subdomain_uri)
-        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
             edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
@@ -995,7 +995,7 @@ def tld_enrichment(domain, include_subdomain=False):
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_extract_uri)
-    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
     rel_chain = "relationship"
     while rel_chain in edge_attr:
         edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
