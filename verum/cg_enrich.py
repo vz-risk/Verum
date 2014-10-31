@@ -76,6 +76,7 @@ import pandas as pd
 from urlparse import urlparse
 from collections import defaultdict
 import socket
+import tldextract
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -789,7 +790,6 @@ def dns_enrichment(domain):
     """
 
     :param domain: a string containing a domain to lookup up
-    :param start_time: A default start time
     :return: a networkx graph representing the response.
     """
     ip = socket.gethostbyname(domain)
@@ -828,6 +828,7 @@ def dns_enrichment(domain):
     # Create edge from domain to ip node
     edge_attr = {
         "relationship": "describedBy",
+        "start_time": now,
         "origin": "dns"
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
@@ -845,7 +846,7 @@ def dns_enrichment(domain):
     # Link domain to enrichment
     edge_attr = {
         "relationship": "describedBy",
-        "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "start_time": now,
         "origin": "dns"
     }
     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
@@ -863,10 +864,143 @@ def dns_enrichment(domain):
     return g
 
 
-def tld_enrichment(domain, start_time=""):
+def tld_enrichment(domain, include_subdomain=False):
     """
 
     :param domain: a string containing a domain to look up
-    :param start_time: a default start time
-    :return: a  networkx graph representing the
+    :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
+    :return: a networkx graph representing the sections of the domain
     """
+
+    ext = tldextract.extract(domain)
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = nx.MultiDiGraph()
+
+    # Get or create Domain node
+    domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", domain)
+    g.add_node(domain_uri, {
+        'class': 'attribute',
+        'key': "domain",
+        "value": domain,
+        "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),  # graphml does not support 'none'
+        "uri": domain_uri
+    })
+
+    # Get or create Enrichment node
+    tld_extract_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "tld_extract")
+    g.add_node(tld_extract_uri, {
+        'class': 'attribute',
+        'key': "enrichment",
+        "value": "tld_extract",
+        "start_time": now,
+        "uri": tld_extract_uri
+    })
+
+    # Get or create TLD node
+    tld_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.suffix)
+    g.add_node(tld_uri, {
+        'class': 'attribute',
+        'key': "domain",
+        "value": ext.suffice,
+        "start_time": now,
+        "uri": tld_uri
+    })
+
+    # Link domain to tld
+    edge_attr = {
+        "relationship": "describedBy",
+        "start_time": now,
+        "origin": "tld_extract",
+        "describedBy":"suffix"
+    }
+    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_uri)
+    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    rel_chain = "relationship"
+    while rel_chain in edge_attr:
+        edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+        rel_chain = edge_attr[rel_chain]
+    if "origin" in edge_attr:
+        edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+    edge_attr["uri"] = edge_uri
+    g.add_edge(domain_uri, tld_uri, edge_uri, edge_attr)
+
+
+    # Get or create mid domain node
+    mid_domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.domain)
+    g.add_node(mid_domain_uri, {
+        'class': 'attribute',
+        'key': "domain",
+        "value": ext.domain,
+        "start_time": now,
+        "uri": mid_domain_uri
+    })
+
+    # Link domain to mid_domain
+    edge_attr = {
+        "relationship": "describedBy",
+        "start_time": now,
+        "origin": "tld_extract",
+        "describedBy":"domain"
+    }
+    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, mid_domain_uri)
+    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    rel_chain = "relationship"
+    while rel_chain in edge_attr:
+        edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+        rel_chain = edge_attr[rel_chain]
+    if "origin" in edge_attr:
+        edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+    edge_attr["uri"] = edge_uri
+    g.add_edge(domain_uri, mid_domain_uri, edge_uri, edge_attr)
+
+
+    # if including subdomains, create subdomain and node
+    if include_subdomain:
+        # Get or create mid domain node
+        subdomain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", ext.subdomain)
+        g.add_node(subdomain_uri, {
+            'class': 'attribute',
+            'key': "domain",
+            "value": ext.domain,
+            "start_time": now,
+            "uri": subdomain_uri
+        })
+
+        # Link domain to mid_domain
+        edge_attr = {
+            "relationship": "describedBy",
+            "start_time": now,
+            "origin": "tld_extract",
+            "describedBy":"subdomain"
+        }
+        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, subdomain_uri)
+        edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        rel_chain = "relationship"
+        while rel_chain in edge_attr:
+            edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+            rel_chain = edge_attr[rel_chain]
+        if "origin" in edge_attr:
+            edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+        edge_attr["uri"] = edge_uri
+        g.add_edge(domain_uri, subdomain_uri, edge_uri, edge_attr)
+
+    # Link domain to enrichment
+    edge_attr = {
+        "relationship": "describedBy",
+        "start_time": now,
+        "origin": "tld_extract"
+    }
+    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_extract_uri)
+    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    rel_chain = "relationship"
+    while rel_chain in edge_attr:
+        edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+        rel_chain = edge_attr[rel_chain]
+    if "origin" in edge_attr:
+        edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+    edge_attr["uri"] = edge_uri
+    g.add_edge(domain_uri, tld_extract_uri, edge_uri, edge_attr)
