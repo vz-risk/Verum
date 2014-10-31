@@ -75,7 +75,7 @@ import ipaddress
 import pandas as pd
 from urlparse import urlparse
 from collections import defaultdict
-import re
+import socket
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -785,12 +785,88 @@ def whois_record(record, start_time=""):
     return g
 
 
-def dns_enrichment(domain, start_time=""):
+def dns_enrichment(domain):
     """
 
     :param domain: a string containing a domain to lookup up
     :param start_time: A default start time
     :return: a networkx graph representing the response.
     """
-    pass
-    # TODO
+    ip = socket.gethostbyname(domain)
+    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    g = nx.MultiDiGraph()
+
+    # Get or create Domain node
+    domain_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("domain", domain)
+    g.add_node(domain_uri, {
+        'class': 'attribute',
+        'key': "domain",
+        "value": domain,
+        "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),  # graphml does not support 'none'
+        "uri": domain_uri
+    })
+
+    # Get or create Enrichment node
+    dns_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("enrichment", "dns")
+    g.add_node(dns_uri, {
+        'class': 'attribute',
+        'key': "enrichment",
+        "value": "dns",
+        "start_time": now,
+        "uri": dns_uri
+    })
+
+    ip_uri = "vzgraph:?class=attribute&key={0}&value={1}".format("ip", ip)
+    g.add_node(ip_uri, {
+        'class': 'attribute',
+        'key': "ip",
+        "value": ip,
+        "start_time": now,
+        "uri": ip_uri
+    })
+
+    # Create edge from domain to ip node
+    edge_attr = {
+        "relationship": "describedBy",
+        "origin": "dns"
+    }
+    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, ip_uri)
+    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    rel_chain = "relationship"
+    while rel_chain in edge_attr:
+        edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+        rel_chain = edge_attr[rel_chain]
+    if "origin" in edge_attr:
+        edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+    edge_attr["uri"] = edge_uri
+    g.add_edge(domain_uri, ip_uri, edge_uri, {"start_time": now})
+
+    # Link domain to enrichment
+    edge_attr = {
+        "relationship": "describedBy",
+        "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "origin": "dns"
+    }
+    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dns_uri)
+    edge_uri = "vzgraph:?source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+    rel_chain = "relationship"
+    while rel_chain in edge_attr:
+        edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+        rel_chain = edge_attr[rel_chain]
+    if "origin" in edge_attr:
+        edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+    edge_attr["uri"] = edge_uri
+    g.add_edge(domain_uri, dns_uri, edge_uri, edge_attr)
+
+    return g
+
+
+def tld_enrichment(domain, start_time=""):
+    """
+
+    :param domain: a string containing a domain to look up
+    :param start_time: a default start time
+    :return: a  networkx graph representing the
+    """
