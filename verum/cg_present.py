@@ -46,6 +46,7 @@ import argparse
 import logging
 import cg_query
 import pandas as pd
+from collections import defaultdict
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -141,7 +142,7 @@ def score_and_store_topic(G, topic, topic_name=None, exclude=("enrichment", "cla
     return G
 
 
-def score_and_cluster(G, exclude=("enrichment", "classification")):
+def cluster_and_store(G, exclude=("enrichment", "classification")):
     """
 
     :param G: a networkx subgraph
@@ -197,18 +198,74 @@ def get_node_edge_dataframe(G):
     return nodes, edges
 
 
-def get_cluster_dataframe(node_dataframe):
+def get_cluster_dataframe(G, topic = None, topics = set()):
     """ For returning clusters for manual or automated standard data analysis
 
-    :param node_dataframe: pandas dataframe of nodes and their properties
+    :param G: scored networkx subgraph
+    :param topics: set of topics to aggregate distance and score. including the main topic and any alternate topics such as 'malice'
     :return: tuple of pandas dataframe of nodes and edges
     """
-    pass
-    # TODO
+    agg_dict = {'order':0, 'keys':defaultdict(int)}
+    for topic in topics:
+        agg_dict["{0}Score".format(topic)] = 0
+        agg_dict["{0}Distance".format(topic)] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+    # Create a dictionary of aggregate cluster scores
+    def clusterlist(): return agg_dict
+    cluster_scores = defaultdict(clusterlist)
+    for node, data in G.nodes(data=True):
+        if 'cluster' in data:
+            # Sum nodes
+            cluster_scores[data['cluster']]['order'] += 1
+            # store the key
+            cluster_scores[data['cluster']]['keys'][data['key']] += 1
+            for topic in topics:
+                if "{0}_dist".format(topic) in data:
+                    if data["{0}_dist".format(topic)] < 12:
+                        cluster_scores[data['cluster']]["{0}Distance".format(topic)][data["{0}_dist".format(topic)]] += 1
+                    else:
+                        cluster_scores[data['cluster']]["{0}Distance".format(topic)][12] += 1
+                if "{0}_score".format(topic) in data:
+                    cluster_scores[data['cluster']]["{0}Score".format(topic)] += data["{0}_score".format(topic)]
+
+    # Build dataframe
+    temp= {k:v['order'] for k, v in cluster_scores.iteritems()}
+    df = pd.DataFrame(temp.values(), index=temp.keys(), columns = ['order'])
+    for topic in topics:
+        # store the aggregate score
+        temp = {k:v["{0}Score".format(topic)] for k, v in cluster_scores.iteritems()}
+        df["{0}Score".format(topic)] = pd.Series(temp.values(), index=temp.keys())
+        # store the distances
+        for i in range(12):
+            temp = {k:v["{0}Distance".format(topic)][i] for k, v in cluster_scores.iteritems()}
+            df["{0}Distance{1}".format(topic, i)] = pd.Series(temp.values(), index=temp.keys())
+        temp = {k:v["{0}Distance".format(topic)][12] for k, v in cluster_scores.iteritems()}
+        df["{0}Distance{1}+".format(topic, 12)] = pd.Series(temp.values(), index=temp.keys())
+    for key in cluster_scores['keys'].keys():
+        temp = {k:v['keys'][key] for k, v in cluster_scores.iteritems()}
+        df[key] = pd.Series(temp.values(), index=temp.keys())
+
+
+    #normalize scores by cluster size
+    order = df['order']
+    df = df.div(df['order'], axis=0)
+    df['order'] = order
+    # Normalize Scores to 0-1 range
+    for topic in topics:
+        df["{0}Score".format(topic)] = ((df["{0}Score".format(topic)] -
+                                              df["{0}Score".format(topic)].min()) /
+                                             (df["{0}Score".format(topic)].max() -
+                                              df["{0}Score".format(topic)].min())
+                                            )
+    # Distances and keys not normalized as they are percentages already
+
+    # Return the aggregated, normalized, dataframe
+    return df
+
 
 # TODO - Create GUI output
 
 
-# TODO - Create M2M output based on need
+# TODO - Create M2M output based on need.  See Moirai code (https://github.com/gdbassett/moirai/blob/master/DCES/attribute_graph_module.py) for graph conversion ideas
 
 
