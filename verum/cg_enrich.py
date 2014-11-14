@@ -69,7 +69,8 @@ import copy
 from cymru import CymruIPtoASNService
 from cags_schema import TalksTo, DescribedBy, Influences
 import GeoIP
-from bulbs.titan import Graph, Config
+from bulbs.titan import Graph as TITAN_Graph
+from bulbs.titan import Config as TITAN_Config
 #import csv
 import ipaddress
 import pandas as pd
@@ -77,6 +78,12 @@ from urlparse import urlparse
 from collections import defaultdict
 import socket
 import tldextract
+from bulbs.neo4jserver import NEO4J_URI
+from bulbs.neo4jserver import Graph as NEO_Graph
+from bulbs.neo4jserver import Config as NEO_Config
+from py2neo import Graph as py2neoGraph
+from py2neo import Relationship as py2neoRelationship
+from py2neo import Node as py2neoNode
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -101,14 +108,80 @@ parser.add_argument('--log', help='Location of log file', default=None)
 #    logging.basicConfig(level=args.loglevel)
 # <add other setup here>
 # create titan config
-config = Config('http://{0}:{1}/graphs/{2}'.format(TITAN_HOST, TITAN_PORT, TITAN_GRAPH))
+titan_config = TITAN_Config('http://{0}:{1}/graphs/{2}'.format(TITAN_HOST, TITAN_PORT, TITAN_GRAPH))
+neo4j_config = NEO_Config(NEO4J_URI)
 
 
 ## EXECUTION
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
 
 
-def merge_titandb(g, titan=config):
+#def merge_neo4j(g, neo4j=neo4j_config):  # Bulbs
+def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
+    """
+
+    :param g: networkx graph to be merged
+    :param neo4j: bulbs neo4j config
+    :return: Nonetype
+
+    Note: Neo4j operates differently from the current titan import.  The neo4j import does not aggregate edges which
+           means they must be handled at query time.  The current titan algorithm aggregates edges based on time on
+           merge.
+    """
+    #neo4j_graph = NEO_Graph(neo4j)  # Bulbs
+    neo_graph = py2neoGraph(neo4j)
+    nodes = set()
+    edges = set()
+    settled = set()
+    for edge in g.edges(data=True):
+#        print edge  # DEBUG
+        # Get the src node
+        src_uri = edge[0]
+        if src_uri not in settled:
+            attr = g.node[src_uri]
+            # get/create the src node
+            # src = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
+            src = neo_graph.merge_one(attr['class'], 'uri', src_uri)
+            src.set_properties(attr)
+            nodes.add(src)
+            settled.add(src_uri)
+            # TODO: set "start_time" and "finish_time" to dummie variables in attr.
+            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummie
+            # TODO:  variable update if node start > dummie start & node finish < dummie finish, and delete dummie
+            # TODO:  variables.
+
+        # get/create the dst node
+        dst_uri = edge[1]
+        if dst_uri not in settled:
+            # dst = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
+            dst = neo_graph.merge_one(attr['class'], 'uri', src_uri)
+            dst.set_properties(attr)
+            nodes.add(dst)
+            settled.add(dst_uri)
+            # TODO: set "start_time" and "finish_time" to dummie variables in attr.
+            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummie
+            # TODO:  variable update if node start > dummie start & node finish < dummie finish, and delete dummie
+            # TODO:  variables.
+
+        # create the edge
+        # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
+        #        The query scripts should handle this.
+        try:
+            relationship = edge[2].pop('relationship')
+        except:
+            # default to 'described_by'
+            relationship = 'describedBy'
+        rel = py2neoRelationship(src_uri, relationship, dst_uri)
+        rel.set_properties(edge[2])
+        edges.add(rel)
+
+    # push updates to nodes all at once
+    neo_graph.push(*nodes)
+    # create edges all at once
+    neo_graph.create(*edges)
+
+
+def merge_titandb(g, titan=titan_config):
     """
 
     :param g: graph to be merged
@@ -120,7 +193,7 @@ def merge_titandb(g, titan=config):
            Any nodes without edges are iterated through and created if they do not already exist.
     """
     # Connect to TitanDB Database
-    titan_graph = Graph(titan)
+    titan_graph = TITAN_Graph(titan)
 
     # Add schema relationships
     titan_graph.add_proxy("talks_to", TalksTo)

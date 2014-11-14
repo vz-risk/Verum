@@ -55,6 +55,7 @@ import urlparse
 import urllib # It appears urllib2 or urllib3 and requests don't have urlencode
 import community
 
+
 ## SETUP
 __author__ = "Gabriel Bassett"
 # Parse Arguments (should correspond to user variables)
@@ -232,6 +233,20 @@ def create_topic(properties, prefix=""):
             })
 
     return g
+
+
+def get_neo_subgraph(neo_conf, topic, max_depth):
+    """
+
+    :param neo_conf:
+    :param topic:
+    :param max_depth:
+    :return:
+    """
+    pass
+    # TODO:  Pull topic graph
+    # TODO:  Selectively not following relationships from degree nodes
+    # TODO:  Handle duplicate edges
 
 
 def get_titan_subgraph(titan_conf, topic, max_depth, pivot_on=list(), dont_pivot_on=list(), direction='successors'):
