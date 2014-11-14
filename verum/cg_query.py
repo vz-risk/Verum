@@ -128,6 +128,8 @@ def multigraph_to_digraph(g):
     G.add_edges_from(g.edges(data=True))
 
     # for each edge, weight the confidence by the number of edges
+    '''
+    # captures a multiple of the confidence on the edge in the output graph
     for edge in G.edges():
         count = g.edges().count(edge)
         if "count" > 1:
@@ -135,7 +137,13 @@ def multigraph_to_digraph(g):
                 G.edge[edge[0]][edge[1]]['confidence'] *= count
             else:
                 G.edge[edge[0]][edge[1]]["confidence"] = count
-
+    '''
+    # Captures every confidence
+    for edge in G.edges():
+        confidence = 0
+        for src_edge in g.edge[edge[0]][edge[1]].values():
+            confidence += src_edge.get('confidence', 1)
+        G.edge[edge[0]][edge[1]]['confidence'] = confidence
 #    # collapse down to a diagraph
 #    G.add_nodes_from(g.nodes(data=True))
 #    G.add_edges_from(g.edges(data=True))
@@ -169,6 +177,18 @@ def log_weight(distance, a=1, b=1, n=3, pwr=1):
 
 def exponential_weight(distance, b=2):
     return np.exp(-distance/b)
+
+
+def normal_weight(distance, pwr=2, a=1.1, b=10, c=1):
+    """
+
+    :param distance: distance from topic
+    :param pwr: constant to shape graph.  Higher = steeper decline
+    :param b: constant to shape graph.  lower = greater spread
+    :return: normal weighting factor as float
+    pwr = 2.5, a = 1, c = 0, b = 30
+    """
+    return a * np.exp(-(distance + c)**pwr/b)
 
 
 ### QUERY FULL GRAPH ###
