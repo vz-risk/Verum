@@ -45,7 +45,8 @@ import networkx as nx
 import argparse
 import logging
 from datetime import datetime
-from bulbs.titan import Graph, Config
+from bulbs.titan import Graph as TITAN_Graph
+from bulbs.titan import Config as TITAN_Config
 import copy
 import numpy as np
 import uuid
@@ -54,6 +55,9 @@ from collections import defaultdict
 import urlparse
 import urllib # It appears urllib2 or urllib3 and requests don't have urlencode
 import community
+from py2neo import Graph as py2neoGraph
+from py2neo import Relationship as py2neoRelationship
+from py2neo import Node as py2neoNode
 
 
 ## SETUP
@@ -235,7 +239,7 @@ def create_topic(properties, prefix=""):
     return g
 
 
-def get_neo_subgraph(neo_conf, topic, max_depth):
+def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data/"):
     """
 
     :param neo_conf:
@@ -243,10 +247,81 @@ def get_neo_subgraph(neo_conf, topic, max_depth):
     :param max_depth:
     :return:
     """
-    pass
+    neo_graph = py2neoGraph(neo_conf)
+    sg = nx.MultiDiGraph()
+
+    # Get IDs of topic nodes in graph (if they exist).  Also add topics to subgraph
+    topic_ids = defaultdict(set)
+    for t, data  in topic.nodes(data=True):
+        cypher = "MATCH (topic: "+data['class']+" {key:'"+data['key']+"', value:'"+data['value']+"'}) RETURN id(topic) as id;"
+        for record in neo_graph.cypher.execute(cypher):
+            attr = dict(record['topic'].properties)
+            uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
+            sg.add_node(uri, attr)
+            topic_ids[attr['class']].add(str(record.id))
+
+    # Add nodes at depth 1  (done separately as it doesn't include the intermediary
+    if max_depth > 0:
+        for cls, ids in topic_ids.iteritems():
+            topic_ids_str = "[{0}]".format(",".join(ids))
+            cypher = """ MATCH (topic: {1})-[rel:describedBy|influences]-(node: attribute)
+                         WHERE id(topic) IN {0}
+                         RETURN node as nodes, rel as rels;
+                     """.format(topic_ids_str, cls)
+            for record in neo_graph.cypher.execute(cypher):
+                attr = dict(record['topic'].properties)
+                uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
+                sg.add_node(uri, attr)
+
+                # add edges SRC node
+                # TODO: define src_uri here
+
+                # Add edge DST node
+                # TODO: define dst_uri here
+
+                # add edge
+                attr = record.rels.properties
+                attr['relationship'] = record.rels.type
+                source_hash = uuid.uuid3(uuid.NAMESPACE_URL, src_uri)
+                dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dst_uri)
+                edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+                rel_chain = "relationship"
+                while rel_chain in edge_attr:
+                    edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+                    rel_chain = edge_attr[rel_chain]
+                if "origin" in edge_attr:
+                    edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+                attr["uri"] = edge_uri
+                g.add_edge(src_uri, dst_uri, edge_uri, attr)
+
+    # For each depth
+    for i in range(2, max_depth):
+            cypher = """MATCH (topic: {1})-[rel: describedBy|influences*0..4]-(node: attribute)
+                        WHERE id(topic) IN {0}
+                        UNWIND rel AS rel2
+                        WITH topic, rel, rel2
+                        WHERE NOT startNode(rel2).key in ['enrichment', 'classification']
+                        RETURN DISTINCT rel2 as rels, startNode(rel2) as rel_start;
+                     """.format(topic_ids_str, cls)  # TODO: Getting closer, but other edges in enrichments & classifications are not coming out.  Need to subset edges to that followed to the enr/class but not past.
+            FIX ABOVE CYPHER
+
+    for node in topic.nodes():
+        cypher = ""  # TODO.  (Cypher queries don't seem to support conditionals on intermediary nodes so may have to do in iterations
+        record_list = neo_graph.cypher.execute(cypher)
+        sg.add_nodes_from(<TOPIC_GRAPH NODES>)
+        sg.add_edges_from(<TOPIC_GRAPH_EDGES>)
+
     # TODO:  Pull topic graph
+    #         Build Cypher query that retrieves all nodes within 'max_depth' relationships of topic nodes
+    #         Identify undesired nodes, remove out edges, calculate distance from topics, remove nodes outside of distance.
+    #         (Could potentially build into actual cypher query to not follow nodes of certain types or certain degrees.)
     # TODO:  Selectively not following relationships from degree nodes
-    # TODO:  Handle duplicate edges
+    # TODO:  Handle duplicate edges (may dedup but leave in for now)
+    #          Take edges into dataframe
+    #          group by combine on features to be deduplicated.  Return edge_id's in each group.  Combine those edge_ids using a combine algorithm
+    #          Could do the same with dedup algo, but just return the dedup edge_ids and delete them from the graph
+
+    return sg
 
 
 def get_titan_subgraph(titan_conf, topic, max_depth, pivot_on=list(), dont_pivot_on=list(), direction='successors'):
@@ -264,7 +339,7 @@ def get_titan_subgraph(titan_conf, topic, max_depth, pivot_on=list(), dont_pivot
         NOTE: If an attribute is in both pivot_on and dont_pivot_on it will not be pivoted on
     """
     # Connect to TitanDB Database
-    titan_graph = Graph(titan_conf)
+    titan_graph = TITAN_Graph(titan_conf)
 
     # Convert the topic nodes into titanDB eids
     current_nodes = set()
@@ -402,6 +477,24 @@ def get_titan_subgraph(titan_conf, topic, max_depth, pivot_on=list(), dont_pivot
     logging.debug(nx.info(sg))  # DEBUG
     # Return the subgraph
     return sg
+
+
+def time_filter(sg, start, finish, graph_filter="both", time_filter="both"): #TODO
+    """
+
+    :param sg: networkx subgraph to be filtered
+    :param start: start time in XXX format
+    :param finish: finish time in XXX format
+    :param graph_filter: What to test times of in graph.  "nodes", "edges", or "both".  (nodes or edges only will still effect the other)
+    :param time_filter: What to test times of graph object in. "start", "finish", "both".
+    :return: Networkx subgraph with nodes/edges not in the time frame removed..
+    """
+    pass
+    # TODO: Build a script that returns only edges within a specific time.
+    #        option:  filter edges, nodes, or both  (with obvious impact on nodes if edges chosen and visa versa)
+    #        option:  Sort edges/nodes by start/end time to make searching more efficient.
+    #        option:  filter on start, end, or both times.
+    # TODO: (write in such a way that a graph can be sliced into time slices to build a graph over time.)
 
 
 ### SUBGRAPH WEIGHTING FUNCTIONS ###
