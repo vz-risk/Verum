@@ -142,7 +142,9 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
             # get/create the src node
             # src = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
             src = neo_graph.merge_one(attr['class'], 'uri', src_uri)
+            print src  # DEBUG
             src.set_properties(attr)
+            #src.cast(attr)  # Attempt to push all node updates at same time 1/3
             nodes.add(src)
             settled.add(src_uri)
             # TODO: set "start_time" and "finish_time" to dummie variables in attr.
@@ -153,9 +155,12 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
         # get/create the dst node
         dst_uri = edge[1]
         if dst_uri not in settled:
+            attr = g.node[dst_uri]
             # dst = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
-            dst = neo_graph.merge_one(attr['class'], 'uri', src_uri)
+            dst = neo_graph.merge_one(attr['class'], 'uri', dst_uri)
+            print dst  # DEBUG
             dst.set_properties(attr)
+            #dst.cast(attr)  # Attempt to push all node updates at same time 2/3
             nodes.add(dst)
             settled.add(dst_uri)
             # TODO: set "start_time" and "finish_time" to dummie variables in attr.
@@ -171,14 +176,18 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
         except:
             # default to 'described_by'
             relationship = 'describedBy'
-        rel = py2neoRelationship(src_uri, relationship, dst_uri)
+        rel = py2neoRelationship(src, relationship, dst)
         rel.set_properties(edge[2])
+        neo_graph.create(rel)  # Debug
         edges.add(rel)
 
+#    return nodes, edges  # Debug
     # push updates to nodes all at once
-    neo_graph.push(*nodes)
+    print nodes  # Debug
+    #neo_graph.push(*nodes)  # Attempt to push all node updates at same time 3/3
     # create edges all at once
-    neo_graph.create(*edges)
+    print edges  # Debug
+ #   neo_graph.create(*edges)
 
 
 def merge_titandb(g, titan=titan_config):
