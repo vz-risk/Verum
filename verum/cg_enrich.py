@@ -143,13 +143,14 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
             # src = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
             src = neo_graph.merge_one(attr['class'], 'uri', src_uri)
             #print src  # DEBUG
-            src.set_properties(attr)  # Remove once batch push working 1/2
+            #src.set_properties(attr)  # Remove once batch push working 1/2
             #src.cast(attr)  # Attempt to batch push all node updates at same time 1/3
+            src.properties.update(attr)
             nodes.add(src)
             settled.add(src_uri)
-            # TODO: set "start_time" and "finish_time" to dummie variables in attr.
-            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummie
-            # TODO:  variable update if node start > dummie start & node finish < dummie finish, and delete dummie
+            # TODO: set "start_time" and "finish_time" to dummy variables in attr.
+            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
+            # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
             # TODO:  variables.
 
         # get/create the dst node
@@ -159,13 +160,14 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
             # dst = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
             dst = neo_graph.merge_one(attr['class'], 'uri', dst_uri)
             #print dst  # DEBUG
-            dst.set_properties(attr)  # Remove once batch push working 2/2
+            #dst.set_properties(attr)  # Remove once batch push working 2/2
             #dst.cast(attr)  # Attempt to batch push all node updates at same time 2/3
+            dst.properties.update(attr)
             nodes.add(dst)
             settled.add(dst_uri)
-            # TODO: set "start_time" and "finish_time" to dummie variables in attr.
-            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummie
-            # TODO:  variable update if node start > dummie start & node finish < dummie finish, and delete dummie
+            # TODO: set "start_time" and "finish_time" to dummy variables in attr.
+            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
+            # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
             # TODO:  variables.
 
         # create the edge
@@ -184,7 +186,7 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
 #    return nodes, edges  # Debug
     # push updates to nodes all at once
     #print nodes  # Debug
-    #neo_graph.push(*nodes)  # Attempt to batch push all node updates at same time 3/3
+    neo_graph.push(*nodes)  # Attempt to batch push all node updates at same time 3/3
     # create edges all at once
     #print edges  # Debug
  #   neo_graph.create(*edges)
