@@ -253,15 +253,17 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
     # Get IDs of topic nodes in graph (if they exist).  Also add topics to subgraph
     topic_ids = set()
     for t, data in topic.nodes(data=True):
-        cypher = ("MATCH (topic: {CLASS}}"
-                  "WHERE topic.key = {KEY} AND topic.value = {VALUE}"
-                  "RETURN id(topic) as id")
-        props = {"CLASS":data['class'], "KEY":data['key'], "VALUE":data['value']}
+        cypher = ("MATCH (topic: {0}) "
+                  "WHERE topic.key = {1} AND topic.value = {2} "
+                  "RETURN topic as topics").format(data['class'], "{KEY}", "{VALUE}")
+        props = {"KEY":data['key'], "VALUE":data['value']}
         for record in neo_graph.cypher.execute(cypher, props):
-            attr = dict(record['topic'].properties)
-            uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
-            sg.add_node(uri, attr)
-            topic_ids.add(record.id)
+            print record  # DEBUG
+            for topic in record.topics:
+                attr = dict(topic.properties)
+                uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
+                sg.add_node(uri, attr)
+                topic_ids.add(topic._Node__id)
 
     # Add nodes at depth 1  (done separately as it doesn't include the intermediary
     if max_depth > 0:
