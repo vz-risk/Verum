@@ -252,9 +252,12 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
 
     # Get IDs of topic nodes in graph (if they exist).  Also add topics to subgraph
     topic_ids = set()
-    for t, data  in topic.nodes(data=True):
-        cypher = "MATCH (topic: "+data['class']+" {key:'"+data['key']+"', value:'"+data['value']+"'}) RETURN id(topic) as id;"
-        for record in neo_graph.cypher.execute(cypher):
+    for t, data in topic.nodes(data=True):
+        cypher = ("MATCH (topic: {CLASS}}"
+                  "WHERE topic.key = {KEY} AND topic.value = {VALUE}"
+                  "RETURN id(topic) as id")
+        props = {"CLASS":data['class'], "KEY":data['key'], "VALUE":data['value']}
+        for record in neo_graph.cypher.execute(cypher, props):
             attr = dict(record['topic'].properties)
             uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
             sg.add_node(uri, attr)
@@ -262,8 +265,6 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
 
     # Add nodes at depth 1  (done separately as it doesn't include the intermediary
     if max_depth > 0:
-        node_map = dict()
-
         if max_depth == 1:
             cypher = ("path=MATCH (topic)-[rel:describedBy|influences]-(node: attribute)"
                       "WHERE id(topic) IN {TOPICS}"
@@ -282,57 +283,32 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
                     "DONT_FOLLOW": ['enrichment', 'classification']}
 
         for record in neo_graph.cypher.stream(cypher, attr):
-            for node in record.nodes:
-                attr = record.node.properties
-                uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
-                sg.add_node(uri, attr)
-                node_map[node._Node__id] = uri
-
             for rel in record.rels:
                 # add edges SRC node
-                src_attr = rel.start_node.properties
-                src_uri = "class={0}&key={1}&value={2}".format(src_attr['class'], src_attr['key'], src_attr['value'])
+                src_attr = dict(rel.start_node.properties)
+                src_uri = u"class={0}&key={1}&value={2}".format(src_attr['class'], src_attr['key'], src_attr['value'])
                 sg.add_node(src_uri, src_attr)
 
                 # Add edge DST node
-                dst_attr = rel.end_node.properties
-                dst_uri = "class={0}&key={1}&value={2}".format(dst_attr['class'], dst_attr['key'], dst_attr['value'])
+                dst_attr = dict(rel.end_node.properties)
+                dst_uri = u"class={0}&key={1}&value={2}".format(dst_attr['class'], dst_attr['key'], dst_attr['value'])
                 sg.add_node(dst_uri, dst_attr)
 
                 # add edge
-                edge_attr = record.rels.properties
+                edge_attr = dict(record.rels.properties)
                 edge_attr['relationship'] = record.rels.type
                 source_hash = uuid.uuid3(uuid.NAMESPACE_URL, src_uri)
                 dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dst_uri)
-                edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
-                rel_chain = "relationship"
+                edge_uri = u"source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+                rel_chain = u"relationship"
                 while rel_chain in edge_attr:
-                    edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+                    edge_uri = edge_uri + u"&{0}={1}".format(rel_chain,edge_attr[rel_chain])
                     rel_chain = edge_attr[rel_chain]
                 if "origin" in edge_attr:
-                    edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+                    edge_uri += u"&{0}={1}".format(u"origin", edge_attr["origin"])
                 edge_attr["uri"] = edge_uri
-                g.add_edge(src_uri, dst_uri, edge_uri, edge_attr)
+                sg.add_edge(src_uri, dst_uri, edge_uri, edge_attr)
 
-
-
-
-
-
-
-
-
-    for node in topic.nodes():
-        cypher = ""  # TODO.  (Cypher queries don't seem to support conditionals on intermediary nodes so may have to do in iterations
-        record_list = neo_graph.cypher.execute(cypher)
-        sg.add_nodes_from(<TOPIC_GRAPH NODES>)
-        sg.add_edges_from(<TOPIC_GRAPH_EDGES>)
-
-    # TODO:  Pull topic graph
-    #         Build Cypher query that retrieves all nodes within 'max_depth' relationships of topic nodes
-    #         Identify undesired nodes, remove out edges, calculate distance from topics, remove nodes outside of distance.
-    #         (Could potentially build into actual cypher query to not follow nodes of certain types or certain degrees.)
-    # TODO:  Selectively not following relationships from degree nodes
     # TODO:  Handle duplicate edges (may dedup but leave in for now)
     #          Take edges into dataframe
     #          group by combine on features to be deduplicated.  Return edge_id's in each group.  Combine those edge_ids using a combine algorithm
