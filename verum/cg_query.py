@@ -294,6 +294,8 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
                 attr["uri"] = edge_uri
                 g.add_edge(src_uri, dst_uri, edge_uri, attr)
 
+##### OPTION 2
+
     # For each depth
     for i in range(2, max_depth):
             cypher = """MATCH (topic: {1})-[rel: describedBy|influences*0..4]-(node: attribute)
@@ -303,7 +305,45 @@ def get_neo_subgraph(topic, max_depth=4, neo_conf="http://localhost:7474/db/data
                         WHERE NOT startNode(rel2).key in ['enrichment', 'classification']
                         RETURN DISTINCT rel2 as rels, startNode(rel2) as rel_start;
                      """.format(topic_ids_str, cls)  # TODO: Getting closer, but other edges in enrichments & classifications are not coming out.  Need to subset edges to that followed to the enr/class but not past.
+                                                     # TODO: Also, only removes relationships associated with the enr/class.  following edges may remain
+                                                     # TODO: can add a query that gets any path ending in a enr/class to get the edge to the enr/class in the return
             FIX ABOVE CYPHER
+
+
+
+#### Option 3
+        # take all direct relationships
+        # TODO: TEST THIS Tuesday
+        cypher = """ MATCH (topic: {1})-[rel:describedBy|influences]-(node: attribute)
+                     WHERE id(topic) IN {0}
+                     RETURN rel as rels
+                 """.format(topic_ids_str, cls)
+        for i in range(1,max_depth-1):
+            cypher = cypher + """ UNION
+                                  MATCH (topic: {1})-[rel: describedBy|influences*{2}]-(intermediate: attribute)-[rel: describedBy|influences*1..{3}]-(node: attribute)
+                                  WHERE id(topic) IN {0} AND NOT intermediate.key in ['enrichment', 'classification']
+                                  RETURN rel as rels
+                              """.format(topic_ids_str, cls, i, max_depth - i)
+        # Only take rels iun paths without an enrichment or classification node
+        cypher = cypher + """ UNION
+                              MATCH (topic: {1})-[rel: describedBy|influences*{2}]-(intermediate: attribute)-[rel: describedBy|influences*1..{3}]-(node: attribute)
+                              WHERE id(topic) IN {0} AND NOT intermediate.key in ['enrichment', 'classification']
+                              RETURN rel as rels
+                          """.format(topic_ids_str, cls, i, max_depth - i)
+        # Take all rels in paths that end in an enrichment or classification
+        cypher = cypher + """ UNION ALL
+                              MATCH (topic: {1})-[rel: describedBy|influences*0..{2}]-(node: attribute)
+                              WHERE id(topic) IN {0} AND node.key in ['enrichment', 'classification']
+                              RETURN rel as rels;
+                          """.format(topic_ids_str, cls, max_depth)  # This may be redundant
+        for record in neo_graph.cypher.stream(cypher):
+                # TODO Process it
+
+
+
+
+
+
 
     for node in topic.nodes():
         cypher = ""  # TODO.  (Cypher queries don't seem to support conditionals on intermediary nodes so may have to do in iterations
