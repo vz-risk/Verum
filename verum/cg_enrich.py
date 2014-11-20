@@ -131,65 +131,76 @@ def merge_neo4j(g, neo4j="http://localhost:7474/db/data/"):  # Neo4j
     #neo4j_graph = NEO_Graph(neo4j)  # Bulbs
     neo_graph = py2neoGraph(neo4j)
     nodes = set()
+    node_map = dict()
     edges = set()
     settled = set()
+    # Merge all nodes first
+    tx = neo_graph.cypher.begin()
+    cypher = ("MERGE (node: {0} {1}) "
+              "ON CREATE SET node = {2} "
+              "RETURN collect(node) as nodes"
+             )
+    # create transaction for all nodes
+    for node, data in g.nodes(data=True):
+        query = cypher.format(data['class'], "{key:{KEY}, value:{VALUE}}", "{MAP}")
+        props = {"KEY": data['key'], "VALUE":data['value'], "MAP": data}
+        # TODO: set "start_time" and "finish_time" to dummy variables in attr.
+        # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
+        # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
+        # TODO:  variables.
+        tx.append(query, props)
+    # commit transaction and create mapping of returned nodes to URIs for edge creation
+    for record_list in tx.commit():
+        for record in record_list:
+#            print record, record.nodes[0]._Node__id, len(record.nodes)
+            for n in record.nodes:
+#                print n._Node__id
+                attr = n.properties
+                uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
+                node_map[uri] = int(n.ref.split("/")[1])
+#                node_map[uri] = n._Node__id
+#    print node_map  # DEBUG
+
+    # Create edges
+    cypher = ("MATCH (src: {0}), (dst: {1}) "
+              "WHERE id(src) = {2} AND id(dst) = {3} "
+              "CREATE (src)-[rel: {4} {5}]->(dst) "
+             )
+    tx = neo_graph.cypher.begin()
     for edge in g.edges(data=True):
-#        print edge  # DEBUG
-        # Get the src node
-        src_uri = edge[0]
-        if src_uri not in settled:
-            attr = g.node[src_uri]
-            # get/create the src node
-            # src = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
-            src = neo_graph.merge_one(attr['class'], 'uri', src_uri)
-            #print src  # DEBUG
-            #src.set_properties(attr)  # Remove once batch push working 1/2
-            #src.cast(attr)  # Attempt to batch push all node updates at same time 1/3
-            src.properties.update(attr)
-            nodes.add(src)
-            settled.add(src_uri)
-            # TODO: set "start_time" and "finish_time" to dummy variables in attr.
-            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
-            # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
-            # TODO:  variables.
-
-        # get/create the dst node
-        dst_uri = edge[1]
-        if dst_uri not in settled:
-            attr = g.node[dst_uri]
-            # dst = neo4j_graph.vertices.get_or_create("uri", src_uri, attr)  # Bulbs
-            dst = neo_graph.merge_one(attr['class'], 'uri', dst_uri)
-            #print dst  # DEBUG
-            #dst.set_properties(attr)  # Remove once batch push working 2/2
-            #dst.cast(attr)  # Attempt to batch push all node updates at same time 2/3
-            dst.properties.update(attr)
-            nodes.add(dst)
-            settled.add(dst_uri)
-            # TODO: set "start_time" and "finish_time" to dummy variables in attr.
-            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
-            # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
-            # TODO:  variables.
-
-        # create the edge
-        # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
-        #        The query scripts should handle this.
         try:
             relationship = edge[2].pop('relationship')
         except:
             # default to 'described_by'
             relationship = 'describedBy'
-        rel = py2neoRelationship(src, relationship, dst)
-        rel.set_properties(edge[2])
-        neo_graph.create(rel)  # Debug
-        edges.add(rel)
 
-#    return nodes, edges  # Debug
-    # push updates to nodes all at once
-    #print nodes  # Debug
-    neo_graph.push(*nodes)  # Attempt to batch push all node updates at same time 3/3
+        query = cypher.format(g.node[edge[0]]['class'],
+                              g.node[edge[1]]['class'],
+                             "{SRC_ID}",
+                             "{DST_ID}",
+                              relationship,
+                              "{MAP}"
+                             )
+        props = {
+            "SRC_ID": node_map[edge[0]],
+            "DST_ID": node_map[edge[1]],
+            "MAP": edge[2]
+        }
+
+        # create the edge
+        # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
+        #        The query scripts should handle this.
+#        print edge, query, props  # DEBUG
+        tx.append(query, props)
+#        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
+#        rel.properties.update(edge[2])
+#        neo_graph.create(rel)  # Debug
+#        edges.add(rel)
+
     # create edges all at once
+    tx.commit()
     #print edges  # Debug
- #   neo_graph.create(*edges)
+#    neo_graph.create(*edges)
 
 
 def merge_titandb(g, titan=titan_config):
