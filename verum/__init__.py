@@ -23,7 +23,7 @@ under the License.
 '''
 
 __all__ = [ 'verum',
-            'cg_enrich',
             'cg_present',
-            'cg_query'
+            'cg_query',
+            'load_plugins'
           ]
