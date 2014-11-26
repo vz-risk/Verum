@@ -1,0 +1,16 @@
+[Core]
+Name = Maxmind ASN Enrichment
+Module = maxmind
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a domain name as string and returns the ASN of the IP address as networkx graph.
+
+
+[Configuration]
+DAT_FILE = ./maxmind.yapsy-plugin
+Cost = 2
+Speed = 2
+Inputs = IP

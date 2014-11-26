@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-cymru.py
+cymru_api.py
 """
 #  From: https://gist.github.com/zakird/11196064
 

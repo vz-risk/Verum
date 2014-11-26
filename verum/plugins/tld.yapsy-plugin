@@ -1,0 +1,15 @@
+[Core]
+Name = TLD Enrichment
+Module = tld
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.
+
+[Configuration]
+Cost = 1
+Speed = 1
+Inputs = domain
+

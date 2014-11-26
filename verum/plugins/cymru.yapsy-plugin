@@ -1,0 +1,14 @@
+[Core]
+Name = Cymru Enrichment
+Module = cymru
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a list of IPs and returns ASN and BGP information as networkx graph.
+
+[Configuration]
+Cost = 5
+Speed = 4
+Inputs = ip

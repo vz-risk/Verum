@@ -1,0 +1,14 @@
+[Core]
+Name = DNS Enrichment
+Module = dns
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes an IP string and returns the DNS resolved IP address as networkx graph.
+
+[Configuration]
+Cost = 3
+Speed = 3
+Inputs = IP

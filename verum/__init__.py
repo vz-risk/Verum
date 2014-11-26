@@ -25,5 +25,5 @@ under the License.
 __all__ = [ 'verum',
             'cg_present',
             'cg_query',
-            'load_plugins'
+            'cg_enrich'
           ]
