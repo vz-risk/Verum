@@ -34,7 +34,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-CONFIG_FILE = "verum.cfg"
+CONFIG_FILE = "/tmp/verum.cfg"
 # Below values will be overwritten if in the config file or specified at the command line
 TITAN_HOST = "localhost"
 TITAN_PORT = "8182"
@@ -49,18 +49,33 @@ NEO4J_PORT = '7474'
 
 
 ## IMPORTS
+import imp
 import argparse
 import logging
 from datetime import datetime # timedelta imported above
 # todo: Import with IMP and don't import the titan graph functions if they don't import
-from cags_schema import TalksTo, DescribedBy, Influences
-from bulbs.titan import Graph as TITAN_Graph
-from bulbs.titan import Config as TITAN_Config
-from py2neo import Graph as py2neoGraph
-from yapsy.PluginManager import PluginManager
+try:
+    from bulbs.titan import Graph as TITAN_Graph
+    from bulbs.titan import Config as TITAN_Config
+    from bulbs.model import Relationship as TITAN_Relationship
+    titan_import = True
+except:
+    titan_import = False
+try:
+    from py2neo import Graph as py2neoGraph
+    neo_import = True
+except:
+    neo_import = False
+try:
+    from yapsy.PluginManager import PluginManager
+    plugin_import = True
+except:
+    plugin_import = False
 import ConfigParser
 import sqlite3
 import networkx as nx
+import os
+print os.getcwd()
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -112,6 +127,20 @@ else:
 
 
 ## EXECUTION
+#TODO: Selectively import classes based on modules that imported
+
+class TalksTo(TITAN_Relationship):
+    label = "talksto"
+
+
+class DescribedBy(TITAN_Relationship):
+    label = "describedBy"
+
+
+class Influences(TITAN_Relationship):
+    label = "influences"
+
+
 class enrich():
     titandb_config = None
     neo4j_config = None
