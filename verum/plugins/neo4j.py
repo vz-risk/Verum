@@ -34,7 +34,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-CONFIG_FILE = "/tmp/verum.cfg"
+NEO4J_CONFIG_FILE = "./neo4j.yapsy-plugin"
 # Below values will be overwritten if in the config file or specified at the command line
 NEO4J_HOST = 'localhost'
 NEO4J_PORT = '7474'

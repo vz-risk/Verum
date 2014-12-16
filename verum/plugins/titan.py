@@ -34,7 +34,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-CONFIG_FILE = "/tmp/verum.cfg"
+TITAN_CONFIG_FILE = "./titan.yapsy-plugin"
 # Below values will be overwritten if in the config file or specified at the command line
 TITAN_HOST = "localhost"
 TITAN_PORT = "8182"
