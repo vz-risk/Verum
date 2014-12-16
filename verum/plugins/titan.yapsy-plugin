@@ -1,0 +1,15 @@
+[Core]
+Name = TitanDB
+Module = titan
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Provides the ability to enrich a CAGS context graph stored in TitanDB.
+
+[Configuration]
+Type = interface
+host = "localhost"
+port = "8182"
+graph = "vzgraph"

@@ -9,6 +9,7 @@ Website = https://github.com/vz-risk/Verum
 Description = Takes a list of IPs and returns ASN and BGP information as networkx graph.
 
 [Configuration]
+Type = enrichment
 Cost = 5
 Speed = 4
 Inputs = ip

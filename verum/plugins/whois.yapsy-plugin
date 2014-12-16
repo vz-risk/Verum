@@ -9,6 +9,7 @@ Website = https://github.com/vz-risk/Verum
 Description = Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.
 
 [Configuration]
+Type = enrichment
 Cost = 1
 Speed = 1
 Inputs = whois record

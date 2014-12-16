@@ -73,14 +73,21 @@ class PluginOne(IPlugin):
             speed = config.get('Configuration', 'speed')
         else:
             speed = 9999
+
+        if 'Type' in config_options:
+            type = config.get('Configuration', 'type')
+        else:
+            logging.error("'Type' not specified in config file.")
+            return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+
         if 'Inputs' in config_options:
             inputs = config.get('Configuration', 'Inputs')
             inputs = inputs.split(",").strip().lower()
         else:
             logging.error("No input types specified in config file.")
-            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
+            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, type]
 
-        return [True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
+        return [True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed, type]
 
 
     def run(self, domain):

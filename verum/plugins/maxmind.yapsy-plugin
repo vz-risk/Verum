@@ -10,6 +10,7 @@ Description = Takes a domain name as string and returns the ASN of the IP addres
 
 
 [Configuration]
+Type = enrichment
 DAT_FILE = ./maxmind.yapsy-plugin
 Cost = 2
 Speed = 2

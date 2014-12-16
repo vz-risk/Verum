@@ -82,17 +82,25 @@ if module_import_success:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
+
+            if 'Type' in config_options:
+                type = config.get('Configuration', 'type')
+            else:
+                logging.error("'Type' not specified in config file.")
+                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+
             if 'Inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = inputs.split(",").strip().lower()
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
+                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, type]
 
             if not module_import_success:
-                return [False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+                logging.error("Module import failure caused configuration failure.")
+                return [False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, type]
             else:
-                return [True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+                return [True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, type]
 
 
         def run(self, domain, include_subdomain=False):

@@ -97,17 +97,27 @@ if module_import_success:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
+
+            if 'Type' in config_options:
+                type = config.get('Configuration', 'type')
+            else:
+                logging.error("'Type' not specified in config file.")
+                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+
             if 'Inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = inputs.split(",").strip().lower()
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed]
+                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, type]
 
             if not self.dat_file_success:
-                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
-
-            return [True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
+                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
+            elif not module_import_success:
+                logging.error("Module import failure caused configuration failure.")
+                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
+            else:
+                return [True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
 
 
         def run(self, ip, start_time=""):

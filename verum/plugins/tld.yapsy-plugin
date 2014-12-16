@@ -9,6 +9,7 @@ Website = https://github.com/vz-risk/Verum
 Description = Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.
 
 [Configuration]
+Type = enrichment
 Cost = 1
 Speed = 1
 Inputs = domain

@@ -1,0 +1,14 @@
+[Core]
+Name = Neo4j
+Module = neo4j
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Provides the ability to enrich a CAGS context graph stored in Neo4j graph database.
+
+[Configuration]
+Type = interface
+host = 'localhost'
+port = '7474'
