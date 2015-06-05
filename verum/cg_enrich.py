@@ -146,6 +146,7 @@ class enrich():
     neo4j_config = None
     enrichment_db = None
     plugins = None
+    interface = None
 
     def __init__(self):
 
@@ -176,46 +177,57 @@ class enrich():
         cur = self.enrichment_db.cursor()
         for plugin in self.plugins.getAllPlugins():
             print "Configuring plugin {0}.".format(plugin.name)
-            config = plugin.plugin_object.configure()
-            if config[0]:
-                success = 1
-            else:
-                success = 0
+            plugin_config = plugin.plugin_object.configure()
             # Insert enrichment
-            # TODO
-            if config[6] == 'enrichment':
-                cur.execute("INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)", (config[1],
-                                                                               success,
-                                                                               config[2],
-                                                                               config[4],
-                                                                               config[5])
+            if plugin_config[6] == 'enrichment':
+                cur.execute("INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)", (plugin_config[1],
+                                                                               plugin_config[0],
+                                                                               plugin_config[2],
+                                                                               plugin_config[4],
+                                                                               plugin_config[5])
 
                 )
-                for input in config[3]:
+                for inp in plugin_config[3]:
                     # Insert into inputs table
-                    cur.execute("INSERT INTO inputs VALUES (?,?)", config[1], input)
+                    cur.execute("INSERT INTO inputs VALUES (?,?)", (plugin_config[1], inp))
                 self.enrichment_db.commit()
-            elif config[6] == 'interface':
+            elif plugin_config[6] == 'interface':
                 pass
                 #TODO import interfaces (titanDB and Neo4j currently)
 
 
+    def set_interface(self, interface):
+        cexecute
+        self.interface = interface
+
+
     def set_enrichment_db(self):
         conn = sqlite3.connect(":memory:")
-        c = conn.cursor()
+        cur = conn.cursor()
         # Create enrichments table
-        c.execute('''CREATE TABLE enrichments (name text NOT NULL PRIMARY KEY,
+        cur.execute('''CREATE TABLE enrichments (name text NOT NULL PRIMARY KEY,
                                                config int,
                                                description text,
                                                cost int,
                                                speed int)''')
         # Create inputs table
-        c.execute('''CREATE TABLE inputs (name text NOT NULL,
+        cur.execute('''CREATE TABLE inputs (name text NOT NULL,
                                           input text NOT NULL,
                                           PRIMARY KEY (name, input),
                                           FOREIGN KEY (name) REFERENCES enrichments(name))''')
         conn.commit()
-        return conn
+
+
+    def get_inputs(self):
+        """ NoneType -> list of strings
+        
+        :return: A list of the potential enrichment inputs (ip, domain, etc)
+        """
+        inputs = list()
+        cur = self.enrichment_db.cursor()
+        for row in cur.execute('''SELECT DISTINCT input FROM inputs'''):
+            inputs.append(row[0])
+        return inputs
 
 
     def get_enrichments(self, inputs, cost=10, speed=10, enabled=True):
@@ -227,22 +239,57 @@ class enrich():
         :param enabled: Plugin is correctly configured.  If false, plugin may not run correctly.
         :return: list of names of enrichments matching the criteria
         """
+        cur = self.enrichment_db.cursor()
+
+        plugins = list()
+        names = list()
+        for row in cur.execute('''SELECT DISTINCT name FROM inputs WHERE input IN (?)''', (",".join(inputs))):
+            names.append(row[0])
+        for row in cur.execute('''SELECT DISTINCT name
+                                  FROM enrichments
+                                  WHERE cost <= ?
+                                    AND speed <= ?
+                                    AND config = ?
+                                    AND names IN (?)''',
+                                (cost,
+                                 speed,
+                                 enabled,
+                                 ",".join(names)
+                               )):
+            plugins.append(row[0])
+
+        return plugins
 
 
-    def run_enrichments(self, topic, topic_type, cost=10, speed=10):
+    def run_enrichments(self, topic, topic_type, names=None, cost=10, speed=10, start_time=""):
         """
 
         :param topic: topic to enrich (e.g. "1.1.1.1", "www.google.com")
         :param topic_type: type of topic (e.g. "ip", "domain")
         :param cost: integer 1-10 of resource cost of running the enrichment.  (1 = cheapest)
         :param speed: integer 1-10 speed of enrichment. (1 = fastest)
+        :param names: a name (as string) or a list of names of enrichments to use
         :return: networkx graph representing the enrichment of the topic
         """
         enrichments = self.get_enrichments([topic_type], cost, speed, enabled=True)
         g = nx.MultiDiGraph()
 
+        # IF a name(s) are given, subset to them
+        if names:
+            enrichments = set(enrichments).intersection(set(names))
+
         for enrichment in enrichments:
-            # TODO: Run enrichment
+            # TODO: Test the beloq code
+            # get the plugin
+            plugin = self.plugins.getPluginByName(enrichment)
+            # run the plugin
+            g2 = plugin.plugin_object.run(topic, start_time)
+            # merge the graphs
+            for node, props in g2.nodes(data=True):
+                g.add_node(node, props)
+            for edge, props in g2.edges(data=True):
+                g.add_edge()
+
             # TODO: Merge enrichment graph with g
             pass
 
