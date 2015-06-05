@@ -35,7 +35,7 @@ pass
 
 # USER VARIABLES
 MAXMIND_FILE = "./GeoIPASNum.dat"
-MAXMIND_CONFIG_FILE = "./maxmind.yapsy-plugin"
+MAXMIND_CONFIG_FILE = "maxmind.yapsy-plugin"
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
 
@@ -47,6 +47,7 @@ from datetime import datetime # timedelta imported above
 import uuid
 import ConfigParser
 import os
+import inspect
 try:
     import networkx as nx
     import GeoIP
@@ -59,8 +60,11 @@ except:
 
 ## SETUP
 __author__ = "Gabriel Bassett"
+loc = inspect.getfile(inspect.currentframe())
+ind = loc.rfind("/")
+loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(MAXMIND_CONFIG_FILE))
+config.readfp(open(loc + MAXMIND_CONFIG_FILE))
 
 
 ## EXECUTION
@@ -71,12 +75,17 @@ if module_import_success:
 
         def __init__(self, conf=config, dat_file=MAXMIND_FILE):
             try:
-                self.gi = GeoIP.open(config.get('Configuration', 'DAT_FILE'), GeoIP.GEOIP_STANDARD)
+                maxmind_file = config.get('Configuration', 'dat_file')
+                if maxmind_file[0] != "/":
+                    maxmind_file = loc + maxmind_file
+                self.gi = GeoIP.open(maxmind_file, GeoIP.GEOIP_STANDARD)
                 self.dat_file_success = True
             except:
                 pass
             if not self.dat_file_success:
                 try:
+                    if dat_file[0] != "/":
+                        dat_file = loc + dat_file
                     self.gi = GeoIP.open(dat_file, GeoIP.GEOIP_STANDARD)
                     self.dat_file_success = True
                 except:
@@ -89,35 +98,35 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            if 'Cost' in config_options:
+            if 'cost' in config_options:
                 cost = config.get('Configuration', 'cost')
             else:
                 cost = 9999
-            if 'Speed' in config_options:
+            if 'speed' in config_options:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
 
-            if 'Type' in config_options:
-                type = config.get('Configuration', 'type')
+            if 'type' in config_options:
+                plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, None]
 
-            if 'Inputs' in config_options:
+            if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
-                inputs = inputs.split(",").strip().lower()
+                inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, type]
+                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, plugin_type]
 
             if not self.dat_file_success:
-                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
+                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
             elif not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
+                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
             else:
-                return [True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, type]
+                return [True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
 
 
         def run(self, ip, start_time=""):

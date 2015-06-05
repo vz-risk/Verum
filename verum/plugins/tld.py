@@ -34,7 +34,7 @@ pass
 
 
 # USER VARIABLES
-TLD_CONFIG_FILE = "./tld.yapsy-plugin"
+TLD_CONFIG_FILE = "tld.yapsy-plugin"
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -47,6 +47,7 @@ import networkx as nx
 from datetime import datetime # timedelta imported above
 import uuid
 import ConfigParser
+import inspect
 try:
     import tldextract
     module_import_success = True
@@ -58,8 +59,11 @@ except:
 
 ## SETUP
 __author__ = "Gabriel Bassett"
+loc = inspect.getfile(inspect.currentframe())
+ind = loc.rfind("/")
+loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(TLD_CONFIG_FILE))
+config.readfp(open(loc + TLD_CONFIG_FILE))
 
 ## EXECUTION
 if module_import_success:
@@ -74,33 +78,33 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            if 'Cost' in config_options:
+            if 'cost' in config_options:
                 cost = config.get('Configuration', 'cost')
             else:
                 cost = 9999
-            if 'Speed' in config_options:
+            if 'speed' in config_options:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
 
-            if 'Type' in config_options:
-                type = config.get('Configuration', 'type')
+            if 'type' in config_options:
+                plugin_type = config.get('Configuration', 'Type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, None]
 
-            if 'Inputs' in config_options:
+            if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
-                inputs = inputs.split(",").strip().lower()
+                inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, type]
+                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, plugin_type]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, type]
+                return [False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, plugin_type]
             else:
-                return [True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, type]
+                return [True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, plugin_type]
 
 
         def run(self, domain, include_subdomain=False):

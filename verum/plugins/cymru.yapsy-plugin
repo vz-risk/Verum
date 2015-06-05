@@ -13,4 +13,4 @@ Type = enrichment
 Cost = 5
 Speed = 4
 Inputs = ip
-Cymru_Module = "./cymru_api.py"
+Cymru_Module = ./cymru_api.py

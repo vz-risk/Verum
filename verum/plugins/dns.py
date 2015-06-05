@@ -34,7 +34,7 @@ pass
 
 
 # USER VARIABLES
-DNS_CONFIG_FILE = "./dns.yapsy-plugin"
+DNS_CONFIG_FILE = "dns.yapsy-plugin"
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -47,11 +47,15 @@ import socket
 import uuid
 import ConfigParser
 import logging
+import inspect
 
 ## SETUP
 __author__ = "Gabriel Bassett"
+loc = inspect.getfile(inspect.currentframe())
+ind = loc.rfind("/")
+loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(DNS_CONFIG_FILE))
+config.readfp(open(loc + DNS_CONFIG_FILE))
 
 ## EXECUTION
 class PluginOne(IPlugin):
@@ -65,29 +69,29 @@ class PluginOne(IPlugin):
         """
         config_options = config.options("Configuration")
 
-        if 'Cost' in config_options:
+        if 'cost' in config_options:
             cost = config.get('Configuration', 'cost')
         else:
             cost = 9999
-        if 'Speed' in config_options:
+        if 'speed' in config_options:
             speed = config.get('Configuration', 'speed')
         else:
             speed = 9999
 
-        if 'Type' in config_options:
-            type = config.get('Configuration', 'type')
+        if 'type' in config_options:
+            plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, None]
 
-        if 'Inputs' in config_options:
+        if 'inputs' in config_options:
             inputs = config.get('Configuration', 'Inputs')
-            inputs = inputs.split(",").strip().lower()
+            inputs = [l.strip().lower() for l in inputs.split(",")]
         else:
             logging.error("No input types specified in config file.")
-            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, type]
+            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, plugin_type]
 
-        return [True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed, type]
+        return [True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed, plugin_type]
 
 
     def run(self, domain):

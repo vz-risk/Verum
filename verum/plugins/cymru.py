@@ -35,7 +35,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-CYMRU_CONFIG_FILE = "./cymru.yapsy-plugin"
+CYMRU_CONFIG_FILE = "cymru.yapsy-plugin"
 
 
 
@@ -52,22 +52,35 @@ from datetime import datetime # timedelta imported above
 import uuid
 import imp
 import ipaddress
+import inspect
 
 ## SETUP
-__author__ = "Gabriel Bassett"
-config = ConfigParser.SafeConfigParser()
-config.readfp(open(CYMRU_CONFIG_FILE))
 
-if config.has_section('Configuration') and 'Cymru_Module' in config.options('Configuration'):
-    cymru_file = config.get('Configuration', 'Cymru_Module')
-    cymru_dir = "/".join(cymru_file.split("/")[:-1]) + "/"
-    cymru_module = cymru_file.split("/")[-1].strip(".py")
+__author__ = "Gabriel Bassett"
+loc = inspect.getfile(inspect.currentframe())
+i = loc.rfind("/")
+loc = loc[:i+1]
+config = ConfigParser.SafeConfigParser()
+config.readfp(open(loc + CYMRU_CONFIG_FILE))
+
+if config.has_section('Configuration') and 'cymru_module' in config.options('Configuration'):
+    cymru_file = config.get('Configuration', 'cymru_module')
+    if cymru_file[0] != "/":
+        cymru_file = loc + cymru_file
+    i = cymru_file.rfind("/")
+    cymru_dir = cymru_file[:i]
+    cymru_module = cymru_file[i+1:].strip(".py")
+    with open("/tmp/output", 'w') as f:
+        f.write(cymru_dir + "\n")
+        f.write(cymru_module + "\n")
+        f.write(cymru_file + "\n")
     try:
         fp, pathname, description = imp.find_module(cymru_module, [cymru_dir])
         cymru_api = imp.load_module(cymru_module, fp, pathname, description)
         module_import_success = True
     except:
         module_import_success = False
+        raise
 
 else:
     module_import_success = False
@@ -86,33 +99,33 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            if 'Cost' in config_options:
+            if 'cost' in config_options:
                 cost = config.get('Configuration', 'cost')
             else:
                 cost = 9999
-            if 'Speed' in config_options:
+            if 'speed' in config_options:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
 
-            if 'Type' in config_options:
-                type = config.get('Configuration', 'type')
+            if 'type' in config_options:
+                plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+                return [False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed, None]
 
-            if 'Inputs' in config_options:
+            if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
-                inputs = inputs.split(",").strip().lower()
+                inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed, type]
+                return [False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed, plugin_type]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, type]
+                return [False, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, plugin_type]
             else:
-                return [True, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, type]
+                return [True, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, plugin_type]
 
 
         def run(self, ips, start_time = ""):

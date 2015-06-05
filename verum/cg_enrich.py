@@ -89,7 +89,7 @@ if config.has_section('TITANDB'):
         TITAN_PORT = config.get('TITANDB', 'port')
     if 'graph' in config.options('TITANDB'):
         TITAN_GRAPH = config.get('TITANDB', 'graph')
-if config.has_section('NEO4j'):
+if config.has_section('NEO4J'):
     if 'host' in config.options('NEO4J'):
         NEO4J_HOST = config.get('NEO4J', 'host')
     if 'port' in config.options('NEO4J'):
@@ -145,6 +145,7 @@ class enrich():
     titandb_config = None
     neo4j_config = None
     enrichment_db = None
+    plugins = None
 
     def __init__(self):
 
@@ -164,14 +165,16 @@ class enrich():
     # Load the plugins from the plugin directory.
     def load_plugins(self):
         print "Configuring Plugin manager."
-        manager = PluginManager()
-        manager.setPluginPlaces([PluginFolder])
-        manager.collectPlugins()
+        self.plugins = PluginManager()
+        self.plugins.setPluginPlaces([PluginFolder])
+        #self.plugins.collectPlugins()
+        self.plugins.locatePlugins()
+        self.plugins.loadPlugins()
         print "Plugin manager configured."
 
         # Loop round the plugins and print their names.
         cur = self.enrichment_db.cursor()
-        for plugin in manager.getAllPlugins():
+        for plugin in self.plugins.getAllPlugins():
             print "Configuring plugin {0}.".format(plugin.name)
             config = plugin.plugin_object.configure()
             if config[0]:
@@ -195,6 +198,7 @@ class enrich():
             elif config[6] == 'interface':
                 pass
                 #TODO import interfaces (titanDB and Neo4j currently)
+
 
     def set_enrichment_db(self):
         conn = sqlite3.connect(":memory:")

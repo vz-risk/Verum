@@ -34,7 +34,7 @@ pass
 
 
 # USER VARIABLES
-WHOIS_CONFIG_FILE = "./whois.yapsy-plugin"
+WHOIS_CONFIG_FILE = "whois.yapsy-plugin"
 STATES = {'AA': 'armed forces americas', 'AE': 'armed forces middle east', 'AK': 'alaska', 'AL': 'alabama',
           'AP': 'armed forces pacific', 'AR': 'arkansas', 'AS': 'american samoa', 'AZ': 'arizona', 'CA': 'california',
           'CO': 'colorado', 'CT': 'connecticut', 'DC': 'district of columbia', 'DE': 'delaware', 'FL': 'florida',
@@ -60,6 +60,7 @@ import ConfigParser
 import networkx as nx
 from datetime import datetime # timedelta imported above
 import uuid
+import inspect
 try:
     import tldextract
     module_import_success = True
@@ -70,8 +71,11 @@ except:
 
 ## SETUP
 __author__ = "Gabriel Bassett"
+loc = inspect.getfile(inspect.currentframe())
+ind = loc.rfind("/")
+loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(WHOIS_CONFIG_FILE))
+config.readfp(open(loc + WHOIS_CONFIG_FILE))
 
 ## EXECUTION
 if module_import_success:
@@ -86,33 +90,33 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            if 'Cost' in config_options:
+            if 'cost' in config_options:
                 cost = config.get('Configuration', 'cost')
             else:
                 cost = 9999
-            if 'Speed' in config_options:
+            if 'speed' in config_options:
                 speed = config.get('Configuration', 'speed')
             else:
                 speed = 9999
 
-            if 'Type' in config_options:
-                type = config.get('Configuration', 'type')
+            if 'type' in config_options:
+                plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
                 return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
 
-            if 'Inputs' in config_options:
+            if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
-                inputs = inputs.split(",").strip().lower()
+                inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, type]
+                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, plugin_type]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, type]
+                return [False, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, plugin_type]
             else:
-                return [True, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, type]
+                return [True, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, plugin_type]
 
 
         def run(self, record, start_time=""):
