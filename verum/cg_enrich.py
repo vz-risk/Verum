@@ -146,7 +146,7 @@ class enrich():
     neo4j_config = None
     enrichment_db = None
     plugins = None
-    interface = None
+    storage = None
 
     def __init__(self):
 
@@ -179,29 +179,43 @@ class enrich():
             print "Configuring plugin {0}.".format(plugin.name)
             plugin_config = plugin.plugin_object.configure()
             # Insert enrichment
-            if plugin_config[6] == 'enrichment':
-                cur.execute("INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)", (plugin_config[1],
-                                                                               plugin_config[0],
-                                                                               plugin_config[2],
-                                                                               plugin_config[4],
-                                                                               plugin_config[5])
+            if plugin_config[6] == 'enrichment': # type
+                cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[1], # Name
+                                                                               plugin_config[0], # Enabled
+                                                                               plugin_config[2], # Descripton
+                                                                               plugin_config[4], # Cost
+                                                                               plugin_config[5]) # Speed 
 
                 )
-                for inp in plugin_config[3]:
+                for inp in plugin_config[3]: # inputs
                     # Insert into inputs table
-                    cur.execute("INSERT INTO inputs VALUES (?,?)", (plugin_config[1], inp))
+                    cur.execute('''INSERT INTO inputs VALUES (?,?)''', (plugin_config[1], inp))
                 self.enrichment_db.commit()
-            elif plugin_config[6] == 'interface':
-                pass
-                #TODO import interfaces (titanDB and Neo4j currently)
+            elif plugin_config[6] == 'interface': # type
+                cur.execute('''INSERT INTO storage VALUES (?)''', (plugin_config[1]))
 
 
     def set_interface(self, interface):
-        cexecute
-        self.interface = interface
+        """
 
+        :param interface: The name of the plugin to use for storage.
+        Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
+        """
+        cur = self.enrichment_db.cursor()
+        configured_storage = list()
+        for row in cur.execute('''SELECT DISTINCT name FROM storage;'''):
+            configured_storage.append(row[0])
+        if interface in configured_storage:
+            self.storage = interface
+        else:
+            configured_storage = None
+            raise ValueError("Requested interface {0} not configured. Options are {1}.".format(interface, configured_storage))
 
     def set_enrichment_db(self):
+        """
+
+        Sets up the enrichment sqlite in memory database
+        """
         conn = sqlite3.connect(":memory:")
         cur = conn.cursor()
         # Create enrichments table
@@ -209,12 +223,14 @@ class enrich():
                                                config int,
                                                description text,
                                                cost int,
-                                               speed int)''')
+                                               speed int);''')
         # Create inputs table
         cur.execute('''CREATE TABLE inputs (name text NOT NULL,
                                           input text NOT NULL,
                                           PRIMARY KEY (name, input),
-                                          FOREIGN KEY (name) REFERENCES enrichments(name))''')
+                                          FOREIGN KEY (name) REFERENCES enrichments(name));''')
+        # Create storage table
+        cur.execute('''CREATE TABLE storage (name text NOT NULL PRIMARY KEY);''')
         conn.commit()
 
 
@@ -225,7 +241,7 @@ class enrich():
         """
         inputs = list()
         cur = self.enrichment_db.cursor()
-        for row in cur.execute('''SELECT DISTINCT input FROM inputs'''):
+        for row in cur.execute('''SELECT DISTINCT input FROM inputs;'''):
             inputs.append(row[0])
         return inputs
 
@@ -269,7 +285,7 @@ class enrich():
         :param cost: integer 1-10 of resource cost of running the enrichment.  (1 = cheapest)
         :param speed: integer 1-10 speed of enrichment. (1 = fastest)
         :param names: a name (as string) or a list of names of enrichments to use
-        :return: networkx graph representing the enrichment of the topic
+        :return: None if storage configured (networkx graph representing the enrichment of the topic
         """
         enrichments = self.get_enrichments([topic_type], cost, speed, enabled=True)
         g = nx.MultiDiGraph()
@@ -290,7 +306,20 @@ class enrich():
             for edge, props in g2.edges(data=True):
                 g.add_edge()
 
-            # TODO: Merge enrichment graph with g
-            pass
-
         return g
+
+
+    def store_graph(self, g, storage=None):
+        """
+
+        :param g: a networkx graph to merge with the set storage
+        """
+        if not storage:
+            storage = self.storage
+        if not storage:
+            raise ValueError("No storage set.  run set_storage() to set or provide directly.  Storage must be a configured plugin.")
+        else:
+            # get the plugin
+            plugin = self.plugins.getPluginByName(self.storage)
+            # merge the graph
+            plugin.plugin_object.run(g)
