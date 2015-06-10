@@ -181,7 +181,7 @@ class enrich():
             # Insert enrichment
             if plugin_config[6] == 'enrichment': # type
                 cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[1], # Name
-                                                                               plugin_config[0], # Enabled
+                                                                               int(plugin_config[0]), # Enabled
                                                                                plugin_config[2], # Descripton
                                                                                plugin_config[4], # Cost
                                                                                plugin_config[5]) # Speed 
@@ -192,7 +192,7 @@ class enrich():
                     cur.execute('''INSERT INTO inputs VALUES (?,?)''', (plugin_config[1], inp))
                 self.enrichment_db.commit()
             elif plugin_config[6] == 'interface': # type
-                cur.execute('''INSERT INTO storage VALUES (?)''', (plugin_config[1]))
+                cur.execute('''INSERT INTO storage VALUES (?, ?)''', (int(plugin_config[0]), plugin_config[1]))
 
 
     def set_interface(self, interface):
@@ -220,7 +220,7 @@ class enrich():
         cur = conn.cursor()
         # Create enrichments table
         cur.execute('''CREATE TABLE enrichments (name text NOT NULL PRIMARY KEY,
-                                               config int,
+                                               configured int,
                                                description text,
                                                cost int,
                                                speed int);''')
@@ -230,7 +230,9 @@ class enrich():
                                           PRIMARY KEY (name, input),
                                           FOREIGN KEY (name) REFERENCES enrichments(name));''')
         # Create storage table
-        cur.execute('''CREATE TABLE storage (name text NOT NULL PRIMARY KEY);''')
+        cur.execute('''CREATE TABLE storage (name text NOT NULL PRIMARY KEY,
+                                             configured int
+                                            );''')
         conn.commit()
 
 
@@ -265,7 +267,7 @@ class enrich():
                                   FROM enrichments
                                   WHERE cost <= ?
                                     AND speed <= ?
-                                    AND config = ?
+                                    AND configured = ?
                                     AND names IN (?)''',
                                 (cost,
                                  speed,
@@ -322,4 +324,4 @@ class enrich():
             # get the plugin
             plugin = self.plugins.getPluginByName(self.storage)
             # merge the graph
-            plugin.plugin_object.run(g)
+            plugin.plugin_object.enrich(g)

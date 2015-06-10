@@ -34,7 +34,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-TITAN_CONFIG_FILE = "./titan.yapsy-plugin"
+TITAN_CONFIG_FILE = "titan.yapsy-plugin"
 # Below values will be overwritten if in the config file or specified at the command line
 TITAN_HOST = "localhost"
 TITAN_PORT = "8182"
@@ -59,11 +59,6 @@ try:
 except:
     titan_import = False
 try:
-    from py2neo import Graph as py2neoGraph
-    neo_import = True
-except:
-    neo_import = False
-try:
     from yapsy.PluginManager import PluginManager
     plugin_import = True
 except:
@@ -72,14 +67,16 @@ import ConfigParser
 import sqlite3
 import networkx as nx
 import os
-print os.getcwd()
+import inspect
 
 ## SETUP
 __author__ = "Gabriel Bassett"
 # Read Config File - Will overwrite file User Variables Section
-# TODO: Fix config parse
+loc = inspect.getfile(inspect.currentframe())
+i = loc.rfind("/")
+loc = loc[:i+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(CONFIG_FILE))
+config.readfp(open(loc + TITAN_CONFIG_FILE))
 if config.has_section('TITANDB'):
     if 'host' in config.options('TITANDB'):
         TITAN_HOST = config.get('TITANDB', 'host')
@@ -87,34 +84,9 @@ if config.has_section('TITANDB'):
         TITAN_PORT = config.get('TITANDB', 'port')
     if 'graph' in config.options('TITANDB'):
         TITAN_GRAPH = config.get('TITANDB', 'graph')
-if config.has_section('NEO4j'):
-    if 'host' in config.options('NEO4J'):
-        NEO4J_HOST = config.get('NEO4J', 'host')
-    if 'port' in config.options('NEO4J'):
-        NEO4J_PORT = config.get('NEO4J', 'port')
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
-
-# Parse Arguments - Will overwrite Config File
-#TODO: Remove arg parsing
-parser = argparse.ArgumentParser(description='This script processes a graph.')
-parser.add_argument('-d', '--debug',
-                    help='Print lots of debugging statements',
-                    action="store_const", dest="loglevel", const=logging.DEBUG,
-                    default=logging.WARNING
-                   )
-parser.add_argument('-v', '--verbose',
-                    help='Be verbose',
-                    action="store_const", dest="loglevel", const=logging.INFO
-                   )
-parser.add_argument('--log', help='Location of log file', default=None)
-parser.add_argument('--plugins', help="Location of plugin directory", default=PluginFolder)
-parser.add_argument('--titan_host', help="Host for titanDB database.", default=TITAN_HOST)
-parser.add_argument('--titan_port', help="Port for titanDB database.", default=TITAN_PORT)
-parser.add_argument('--titan_graph', help="Graph for titanDB database.", default=TITAN_GRAPH)
-parser.add_argument('--neo4j_host', help="Host for Neo4j database.", default=NEO4J_HOST)
-parser.add_argument('--neo4j_port', help="Port for Neo4j database.", default=NEO4J_PORT)
 
 ## Set up Logging
 args = parser.parse_args()
@@ -154,16 +126,21 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            ... TODO: Fill in configuration stuff here
-
-            # TODO: Ensure titan libraries loaded correctly
-
             # Create titan config
-            # TODO: Import host, port, graph from config file
-            self.set_titan_config(args.titan_host, args.titan_port, args.titan_graph)
+            # Import host, port, graph from config file
+            try:
+                self.set_titan_config(args.titan_host, args.titan_port, args.titan_graph)
+                config_success = True
+            except:
+                config_success = False
+            # If config is successful, return
+            if config_success and titan_import and plugin_import:
+                success = True
+            else:
+                success = False
 
-            # TODO: If config is successful, return
-
+            # Return
+            return [success, "titan"]
 
         def set_titan_config(self, host, port, graph):
             self.titan_config = TITAN_Config('http://{0}:{1}/graphs/{2}'.format(host, port, graph))
@@ -172,7 +149,7 @@ if module_import_success:
         def removeNonAscii(self, s): return "".join(i for i in s if ord(i)<128)
 
 
-        def run(self, g):
+        def enrich(self, g):
             """
 
             :param g: graph to be merged

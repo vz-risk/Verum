@@ -34,7 +34,7 @@ from datetime import timedelta
 
 
 # USER VARIABLES
-NEO4J_CONFIG_FILE = "./neo4j.yapsy-plugin"
+NEO4J_CONFIG_FILE = "neo4j.yapsy-plugin"
 # Below values will be overwritten if in the config file or specified at the command line
 NEO4J_HOST = 'localhost'
 NEO4J_PORT = '7474'
@@ -48,43 +48,32 @@ NEO4J_PORT = '7474'
 import argparse
 import logging
 from datetime import datetime # timedelta imported above
-# todo: Import with IMP and don't import the titan graph functions if they don't import
-try:
-    from bulbs.titan import Graph as TITAN_Graph
-    from bulbs.titan import Config as TITAN_Config
-    from bulbs.model import Relationship as TITAN_Relationship
-    titan_import = True
-except:
-    titan_import = False
 try:
     from py2neo import Graph as py2neoGraph
     neo_import = True
 except:
+    logging.error("Neo4j plugin did not load.")
     neo_import = False
 try:
     from yapsy.PluginManager import PluginManager
     plugin_import = True
 except:
+    logging.error("Yapsy plugin manager did not load for neo4j plugin.")
     plugin_import = False
 import ConfigParser
 import sqlite3
 import networkx as nx
 import os
-print os.getcwd()
+import inspect
 
 ## SETUP
 __author__ = "Gabriel Bassett"
 # Read Config File - Will overwrite file User Variables Section
+loc = inspect.getfile(inspect.currentframe())
+i = loc.rfind("/")
+loc = loc[:i+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(CONFIG_FILE))
-#TODO: Fix Config Parse
-if config.has_section('TITANDB'):
-    if 'host' in config.options('TITANDB'):
-        TITAN_HOST = config.get('TITANDB', 'host')
-    if 'port' in config.options('TITANDB'):
-        TITAN_PORT = config.get('TITANDB', 'port')
-    if 'graph' in config.options('TITANDB'):
-        TITAN_GRAPH = config.get('TITANDB', 'graph')
+config.readfp(open(loc + NEO4J_CONFIG_FILE))
 if config.has_section('NEO4j'):
     if 'host' in config.options('NEO4J'):
         NEO4J_HOST = config.get('NEO4J', 'host')
@@ -94,25 +83,6 @@ if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
 
-# Parse Arguments - Will overwrite Config File
-# TODO: Remove Arg Parse
-parser = argparse.ArgumentParser(description='This script processes a graph.')
-parser.add_argument('-d', '--debug',
-                    help='Print lots of debugging statements',
-                    action="store_const", dest="loglevel", const=logging.DEBUG,
-                    default=logging.WARNING
-                   )
-parser.add_argument('-v', '--verbose',
-                    help='Be verbose',
-                    action="store_const", dest="loglevel", const=logging.INFO
-                   )
-parser.add_argument('--log', help='Location of log file', default=None)
-parser.add_argument('--plugins', help="Location of plugin directory", default=PluginFolder)
-parser.add_argument('--titan_host', help="Host for titanDB database.", default=TITAN_HOST)
-parser.add_argument('--titan_port', help="Port for titanDB database.", default=TITAN_PORT)
-parser.add_argument('--titan_graph', help="Graph for titanDB database.", default=TITAN_GRAPH)
-parser.add_argument('--neo4j_host', help="Host for Neo4j database.", default=NEO4J_HOST)
-parser.add_argument('--neo4j_port', help="Port for Neo4j database.", default=NEO4J_PORT)
 
 ## Set up Logging
 args = parser.parse_args()
@@ -139,16 +109,22 @@ if module_import_success:
             """
             config_options = config.options("Configuration")
 
-            ... TODO: Fill in configuration stuff here
-
-            # TODO: Ensure neo4j libraries loaded correctly
-
-            # Create titan config
+            # Create neo4j config
             # TODO: Import host, port, graph from config file
-            self.set_neo4j_config(args.neo4j_host, args.neo4j_port)
+            try:
+                self.set_neo4j_config(args.neo4j_host, args.neo4j_port)
+                config_success = True
+            except:
+                config_success = False
 
-            # TODO: If config is successful, return
+            # Set success of configuration
+            if config_success and neo_import and plugin_import:
+                success = True
+            else:
+                success = False
 
+            # Return
+            return [success, "neo4j"]
 
         def set_neo4j_config(self, host, port):
             self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)
@@ -157,7 +133,7 @@ if module_import_success:
         def removeNonAscii(self, s): return "".join(i for i in s if ord(i)<128)
 
 
-        def run(self, g):  # Neo4j
+        def enrich(self, g):  # Neo4j
             """
 
             :param g: networkx graph to be merged
