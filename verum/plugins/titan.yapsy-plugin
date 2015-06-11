@@ -13,3 +13,4 @@ Type = interface
 host = "localhost"
 port = "8182"
 graph = "vzgraph"
+logging = debug

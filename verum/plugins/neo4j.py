@@ -29,6 +29,7 @@ under the License.
 """
 # PRE-USER SETUP
 from datetime import timedelta
+import logging
 
 ########### NOT USER EDITABLE ABOVE THIS POINT #################
 
@@ -38,6 +39,8 @@ NEO4J_CONFIG_FILE = "neo4j.yapsy-plugin"
 # Below values will be overwritten if in the config file or specified at the command line
 NEO4J_HOST = 'localhost'
 NEO4J_PORT = '7474'
+LOGLEVEL = logging.INFO
+LOGFILE = None
 
 
 
@@ -45,8 +48,7 @@ NEO4J_PORT = '7474'
 
 
 ## IMPORTS
-import argparse
-import logging
+from yapsy.IPlugin import IPlugin
 from datetime import datetime # timedelta imported above
 try:
     from py2neo import Graph as py2neoGraph
@@ -82,141 +84,144 @@ if config.has_section('NEO4j'):
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
+if config.has_section('Log'):
+    if 'level' in config.options('Log'):
+        LOGLEVEL = config.get('Log', 'level')
+    if 'file' in config.options('Log'):
+        LOGFILE = config.get('Log', 'file')
 
 
 ## Set up Logging
-args = parser.parse_args()
-if args.log is not None:
-    logging.basicConfig(filename=args.log, level=args.loglevel)
+if LOGFILE is not None:
+    logging.basicConfig(filename=LOGFILE, level=LOGLEVEL)
 else:
-    logging.basicConfig(level=args.loglevel)
+    logging.basicConfig(level=LOGLEVEL)
 # <add other setup here>
 
 
 ## EXECUTION
-if module_import_success:
-    class PluginOne(IPlugin):
-        neo4j_config = None
+class PluginOne(IPlugin):
+    neo4j_config = None
 
-        def __init__(self):
-            pass
+    def __init__(self):
+        pass
 
 
-        def configure(self):
-            """
+    def configure(self):
+        """
 
-            :return: return list of [configure success (bool), name, description, list of acceptable inputs, resource cost (1-10, 1=low), speed (1-10, 1=fast)]
-            """
-            config_options = config.options("Configuration")
+        :return: return list of [configure success (bool), name, description, list of acceptable inputs, resource cost (1-10, 1=low), speed (1-10, 1=fast)]
+        """
+        config_options = config.options("Configuration")
 
-            # Create neo4j config
-            # TODO: Import host, port, graph from config file
+        # Create neo4j config
+        # TODO: Import host, port, graph from config file
+        try:
+            self.set_neo4j_config(NEO4J_HOST, NEO4J_PORT)
+            config_success = True
+        except:
+            config_success = False
+
+        # Set success of configuration
+        if config_success and neo_import and plugin_import:
+            success = True
+        else:
+            success = False
+
+        # Return
+        return [success, "neo4j"]
+
+    def set_neo4j_config(self, host, port):
+        self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)
+
+
+    def removeNonAscii(self, s): return "".join(i for i in s if ord(i)<128)
+
+
+    def enrich(self, g):  # Neo4j
+        """
+
+        :param g: networkx graph to be merged
+        :param neo4j: bulbs neo4j config
+        :return: Nonetype
+
+        Note: Neo4j operates differently from the current titan import.  The neo4j import does not aggregate edges which
+               means they must be handled at query time.  The current titan algorithm aggregates edges based on time on
+               merge.
+        """
+        #neo4j_graph = NEO_Graph(neo4j)  # Bulbs
+        neo_graph = py2neoGraph(self.neo4j_config)
+        nodes = set()
+        node_map = dict()
+        edges = set()
+        settled = set()
+        # Merge all nodes first
+        tx = neo_graph.cypher.begin()
+        cypher = ("MERGE (node: {0} {1}) "
+                  "ON CREATE SET node = {2} "
+                  "RETURN collect(node) as nodes"
+                 )
+        # create transaction for all nodes
+        for node, data in g.nodes(data=True):
+            query = cypher.format(data['class'], "{key:{KEY}, value:{VALUE}}", "{MAP}")
+            props = {"KEY": data['key'], "VALUE":data['value'], "MAP": data}
+            # TODO: set "start_time" and "finish_time" to dummy variables in attr.
+            # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
+            # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
+            # TODO:  variables.
+            tx.append(query, props)
+        # commit transaction and create mapping of returned nodes to URIs for edge creation
+        for record_list in tx.commit():
+            for record in record_list:
+    #            print record, record.nodes[0]._Node__id, len(record.nodes)
+                for n in record.nodes:
+    #                print n._Node__id
+                    attr = n.properties
+                    uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
+                    node_map[uri] = int(n.ref.split("/")[1])
+    #                node_map[uri] = n._Node__id
+    #    print node_map  # DEBUG
+
+        # Create edges
+        cypher = ("MATCH (src: {0}), (dst: {1}) "
+                  "WHERE id(src) = {2} AND id(dst) = {3} "
+                  "CREATE (src)-[rel: {4} {5}]->(dst) "
+                 )
+        tx = neo_graph.cypher.begin()
+        for edge in g.edges(data=True):
             try:
-                self.set_neo4j_config(args.neo4j_host, args.neo4j_port)
-                config_success = True
+                relationship = edge[2].pop('relationship')
             except:
-                config_success = False
+                # default to 'described_by'
+                relationship = 'describedBy'
 
-            # Set success of configuration
-            if config_success and neo_import and plugin_import:
-                success = True
-            else:
-                success = False
+            query = cypher.format(g.node[edge[0]]['class'],
+                                  g.node[edge[1]]['class'],
+                                 "{SRC_ID}",
+                                 "{DST_ID}",
+                                  relationship,
+                                  "{MAP}"
+                                 )
+            props = {
+                "SRC_ID": node_map[edge[0]],
+                "DST_ID": node_map[edge[1]],
+                "MAP": edge[2]
+            }
 
-            # Return
-            return [success, "neo4j"]
+            # create the edge
+            # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
+            #        The query scripts should handle this.
+    #        print edge, query, props  # DEBUG
+            tx.append(query, props)
+    #        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
+    #        rel.properties.update(edge[2])
+    #        neo_graph.create(rel)  # Debug
+    #        edges.add(rel)
 
-        def set_neo4j_config(self, host, port):
-            self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)
-
-
-        def removeNonAscii(self, s): return "".join(i for i in s if ord(i)<128)
-
-
-        def enrich(self, g):  # Neo4j
-            """
-
-            :param g: networkx graph to be merged
-            :param neo4j: bulbs neo4j config
-            :return: Nonetype
-
-            Note: Neo4j operates differently from the current titan import.  The neo4j import does not aggregate edges which
-                   means they must be handled at query time.  The current titan algorithm aggregates edges based on time on
-                   merge.
-            """
-            #neo4j_graph = NEO_Graph(neo4j)  # Bulbs
-            neo_graph = py2neoGraph(self.neo4j_config)
-            nodes = set()
-            node_map = dict()
-            edges = set()
-            settled = set()
-            # Merge all nodes first
-            tx = neo_graph.cypher.begin()
-            cypher = ("MERGE (node: {0} {1}) "
-                      "ON CREATE SET node = {2} "
-                      "RETURN collect(node) as nodes"
-                     )
-            # create transaction for all nodes
-            for node, data in g.nodes(data=True):
-                query = cypher.format(data['class'], "{key:{KEY}, value:{VALUE}}", "{MAP}")
-                props = {"KEY": data['key'], "VALUE":data['value'], "MAP": data}
-                # TODO: set "start_time" and "finish_time" to dummy variables in attr.
-                # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
-                # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
-                # TODO:  variables.
-                tx.append(query, props)
-            # commit transaction and create mapping of returned nodes to URIs for edge creation
-            for record_list in tx.commit():
-                for record in record_list:
-        #            print record, record.nodes[0]._Node__id, len(record.nodes)
-                    for n in record.nodes:
-        #                print n._Node__id
-                        attr = n.properties
-                        uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
-                        node_map[uri] = int(n.ref.split("/")[1])
-        #                node_map[uri] = n._Node__id
-        #    print node_map  # DEBUG
-
-            # Create edges
-            cypher = ("MATCH (src: {0}), (dst: {1}) "
-                      "WHERE id(src) = {2} AND id(dst) = {3} "
-                      "CREATE (src)-[rel: {4} {5}]->(dst) "
-                     )
-            tx = neo_graph.cypher.begin()
-            for edge in g.edges(data=True):
-                try:
-                    relationship = edge[2].pop('relationship')
-                except:
-                    # default to 'described_by'
-                    relationship = 'describedBy'
-
-                query = cypher.format(g.node[edge[0]]['class'],
-                                      g.node[edge[1]]['class'],
-                                     "{SRC_ID}",
-                                     "{DST_ID}",
-                                      relationship,
-                                      "{MAP}"
-                                     )
-                props = {
-                    "SRC_ID": node_map[edge[0]],
-                    "DST_ID": node_map[edge[1]],
-                    "MAP": edge[2]
-                }
-
-                # create the edge
-                # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
-                #        The query scripts should handle this.
-        #        print edge, query, props  # DEBUG
-                tx.append(query, props)
-        #        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
-        #        rel.properties.update(edge[2])
-        #        neo_graph.create(rel)  # Debug
-        #        edges.add(rel)
-
-            # create edges all at once
-            #print edges  # Debug
-        #    neo_graph.create(*edges)
-            tx.commit()
+        # create edges all at once
+        #print edges  # Debug
+    #    neo_graph.create(*edges)
+        tx.commit()
 
 
 

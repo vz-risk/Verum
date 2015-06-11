@@ -12,3 +12,7 @@ Description = Provides the ability to enrich a CAGS context graph stored in Neo4
 Type = interface
 host = 'localhost'
 port = '7474'
+
+[Log]
+level = debug
+# file = ./logfile.log
