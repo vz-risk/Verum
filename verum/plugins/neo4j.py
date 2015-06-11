@@ -84,6 +84,8 @@ if config.has_section('NEO4j'):
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
+    if 'module' in config.options('Core'):
+        module= config.get('Core', 'module')
 if config.has_section('Log'):
     if 'level' in config.options('Log'):
         LOGLEVEL = config.get('Log', 'level')
@@ -129,7 +131,7 @@ class PluginOne(IPlugin):
             success = False
 
         # Return
-        return [success, "neo4j"]
+        return [success, module]
 
     def set_neo4j_config(self, host, port):
         self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)

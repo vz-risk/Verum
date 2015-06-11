@@ -89,6 +89,8 @@ if config.has_section('TITANDB'):
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
+    if 'module' in config.options('Core'):
+        module= config.get('Core', 'module')
 if config.has_section('Log'):
     if 'level' in config.options('Log'):
         LOGLEVEL = config.get('Log', 'level')
@@ -128,14 +130,13 @@ class PluginOne(IPlugin):
     def configure(self):
         """
 
-        :return: return list of [configure success (bool), name, description, list of acceptable inputs, resource cost (1-10, 1=low), speed (1-10, 1=fast)]
+        :return: return list of [configure success (bool), name (str)]
         """
-        config_options = config.options("Configuration")
 
         # Create titan config
         # Import host, port, graph from config file
         try:
-            self.set_titan_config(args.titan_host, args.titan_port, args.titan_graph)
+            self.set_titan_config(TITAN_HOST, TITAN_PORT, TITAN_GRAPH)
             config_success = True
         except:
             config_success = False
@@ -146,7 +147,8 @@ class PluginOne(IPlugin):
             success = False
 
         # Return
-        return [success, "titan"]
+        return [success, module]
+        
 
     def set_titan_config(self, host, port, graph):
         self.titan_config = TITAN_Config('http://{0}:{1}/graphs/{2}'.format(host, port, graph))
