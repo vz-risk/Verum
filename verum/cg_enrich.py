@@ -79,25 +79,6 @@ print os.getcwd()
 
 ## SETUP
 __author__ = "Gabriel Bassett"
-# Read Config File - Will overwrite file User Variables Section
-config = ConfigParser.SafeConfigParser()
-config.readfp(open(CONFIG_FILE))
-if config.has_section('TITANDB'):
-    if 'host' in config.options('TITANDB'):
-        TITAN_HOST = config.get('TITANDB', 'host')
-    if 'port' in config.options('TITANDB'):
-        TITAN_PORT = config.get('TITANDB', 'port')
-    if 'graph' in config.options('TITANDB'):
-        TITAN_GRAPH = config.get('TITANDB', 'graph')
-if config.has_section('NEO4J'):
-    if 'host' in config.options('NEO4J'):
-        NEO4J_HOST = config.get('NEO4J', 'host')
-    if 'port' in config.options('NEO4J'):
-        NEO4J_PORT = config.get('NEO4J', 'port')
-if config.has_section('Core'):
-    if 'plugins' in config.options('Core'):
-        PluginFolder = config.get('Core', 'plugins')
-
 # Parse Arguments - Will overwrite Config File
 parser = argparse.ArgumentParser(description='This script processes a graph.')
 parser.add_argument('-d', '--debug',
@@ -110,12 +91,16 @@ parser.add_argument('-v', '--verbose',
                     action="store_const", dest="loglevel", const=logging.INFO
                    )
 parser.add_argument('--log', help='Location of log file', default=None)
-parser.add_argument('--plugins', help="Location of plugin directory", default=PluginFolder)
-parser.add_argument('--titan_host', help="Host for titanDB database.", default=TITAN_HOST)
-parser.add_argument('--titan_port', help="Port for titanDB database.", default=TITAN_PORT)
-parser.add_argument('--titan_graph', help="Graph for titanDB database.", default=TITAN_GRAPH)
-parser.add_argument('--neo4j_host', help="Host for Neo4j database.", default=NEO4J_HOST)
-parser.add_argument('--neo4j_port', help="Port for Neo4j database.", default=NEO4J_PORT)
+parser.add_argument('--plugins', help="Location of plugin directory", default=None)
+
+
+# Read Config File - Will overwrite file User Variables Section
+config = ConfigParser.SafeConfigParser()
+config.readfp(open(CONFIG_FILE))
+
+if config.has_section('Core'):
+    if 'plugins' in config.options('Core'):
+        PluginFolder = config.get('Core', 'plugins')
 
 ## Set up Logging
 args = parser.parse_args()
@@ -123,8 +108,9 @@ if args.log is not None:
     logging.basicConfig(filename=args.log, level=args.loglevel)
 else:
     logging.basicConfig(level=args.loglevel)
-# <add other setup here>
-
+# Get plugins folder
+if args.plugins:
+    PluginFolder = args.plugins
 
 ## EXECUTION
 #TODO: Selectively import classes based on modules that imported
