@@ -219,7 +219,7 @@ class enrich():
         """
         cur = self.enrichment_db.cursor()
         configured_storage = list()
-        for row in cur.execute('''SELECT DISTINCT name FROM storage;'''):
+        for row in cur.execute('''SELECT DISTINCT name FROM storage WHERE configured=1;'''):
             configured_storage.append(row[0])
         if interface in configured_storage:
             self.storage = interface
@@ -295,6 +295,23 @@ class enrich():
             plugins.append(row[0])
 
         return plugins
+
+
+    def get_interfaces(self, configured=None):
+        """
+
+        :return: list of strings of names of interface plugins
+        """
+        cur = self.enrichment_db.cursor()
+        interfaces = list()
+
+        if configured is None:
+            for row in cur.execute('''SELECT DISTINCT name FROM storage;'''):
+                interfaces.append(row[0])
+        else:
+             for row in cur.execute('''SELECT DISTINCT name from storage WHERE configured=?;''', (int(configured),)):
+                interfaces.append(row[0])           
+        return interfaces
 
 
     def run_enrichments(self, topic, topic_type, names=None, cost=10, speed=10, start_time=""):

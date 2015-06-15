@@ -41,6 +41,8 @@ NEO4J_HOST = 'localhost'
 NEO4J_PORT = '7474'
 LOGLEVEL = logging.INFO
 LOGFILE = None
+USERNAME = None
+PASSWORD = None
 
 
 
@@ -52,6 +54,9 @@ from yapsy.IPlugin import IPlugin
 from datetime import datetime # timedelta imported above
 try:
     from py2neo import Graph as py2neoGraph
+    from py2neo import Node as py2neoNode
+    from py2neo import Relationship as py2neoRelationship
+    from py2neo import authenticate as py2neoAuthenticate
     neo_import = True
 except:
     logging.error("Neo4j plugin did not load.")
@@ -81,11 +86,15 @@ if config.has_section('neo4j'):
         NEO4J_HOST = config.get('neo4j', 'host')
     if 'port' in config.options('neo4j'):
         NEO4J_PORT = config.get('neo4j', 'port')
+    if 'username' in config.options('neo4j'):
+        USERNAME = config.get('neo4j', 'username')
+    if 'password' in config.options('neo4j'):
+        PASSWORD = config.get('neo4j', 'password')
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
-    if 'module' in config.options('Core'):
-        module= config.get('Core', 'module')
+    if 'name' in config.options('Core'):
+        name= config.get('Core', 'name')
 if config.has_section('Log'):
     if 'level' in config.options('Log'):
         LOGLEVEL = config.get('Log', 'level')
@@ -119,7 +128,7 @@ class PluginOne(IPlugin):
         # Create neo4j config
         # TODO: Import host, port, graph from config file
         try:
-            self.set_neo4j_config(NEO4J_HOST, NEO4J_PORT)
+            self.set_neo4j_config(NEO4J_HOST, NEO4J_PORT, USERNAME, PASSWORD)
             config_success = True
         except:
             config_success = False
@@ -135,12 +144,16 @@ class PluginOne(IPlugin):
             plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [None, success, module]
-        return [plugin_type, success, module]
+            return [None, success, name]
+        return [plugin_type, success, name]
 
 
-    def set_neo4j_config(self, host, port):
-        self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)
+    def set_neo4j_config(self, host, port, username=None, password=None):
+        if username and password:
+            py2neoAuthenticate("{0}:{1}".format(host, port), username, password)
+            self.neo4j_config = "http://{2}:{3}@{0}:{1}/db/data/".format(host, port, username, password)
+        else:
+            self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)
 
 
     def removeNonAscii(self, s): return "".join(i for i in s if ord(i)<128)

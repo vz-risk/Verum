@@ -12,8 +12,10 @@ Description = Provides the ability to enrich a CAGS context graph stored in Neo4
 Type = interface
 
 [neo4j]
-host = 'localhost'
-port = '7474'
+host = localhost
+port = 7474
+username = neo4j
+password = neo4j1
 
 [Log]
 level = debug

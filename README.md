@@ -36,19 +36,31 @@ LOCATION = "/Users/v685573/Documents/Development/verum/"
 fp, pathname, description = imp.find_module("verum", [LOCATION])
 VERUM = imp.load_module("verum", fp, pathname, description)
 ENRICH = VERUM.enrich("~/Documents/Development/verum/plugins")
-#ENRICH.set_plugin_folder("~/Documents/Development/verum/plugins")
-#ENRICH.load_plugins()
-# TODO - Complete
 ```
 
 Run the following to test enrichment.
 ```
-# TODO: connect to backend storage and enrich something
+# TODO: Push something in to backend storage
+# TODO: Query Fast Plugins
+# TODO: Query IP plugins
+# TODO: Query costly plugins
+# TODO: Enrich something
 ```
 
 Run the following to test querying.
 ```
-# TODO: query the graph for something
+# See what storage interfaces are configured
+print ENRICH.get_interfaces(configured=True)
+# Set the storage interface
+ENRICH.set_interface('neo4j')
+# Store a test graph
+import network as nx
+g = nx.MultiDiGraph()
+g.add_path(range(5))
+for i in range(5):
+    node_props["value"] = i
+    g.node[i] = node_props
+ENRICH.store_graph(g)
 ```
 
 
