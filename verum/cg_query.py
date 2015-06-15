@@ -63,25 +63,26 @@ from py2neo import Node as py2neoNode
 ## SETUP
 __author__ = "Gabriel Bassett"
 # Parse Arguments (should correspond to user variables)
-parser = argparse.ArgumentParser(description='This script processes a graph.')
-parser.add_argument('-d', '--debug',
-                    help='Print lots of debugging statements',
-                    action="store_const", dest="loglevel", const=logging.DEBUG,
-                    default=logging.WARNING
-                   )
-parser.add_argument('-v', '--verbose',
-                    help='Be verbose',
-                    action="store_const", dest="loglevel", const=logging.INFO
-                   )
-parser.add_argument('--log', help='Location of log file', default=None)
-# <add arguments here>
-#args = parser.parse_args()
-## Set up Logging
-#if args.log is not None:
-#    logging.basicConfig(filename=args.log, level=args.loglevel)
-#else:
-#    logging.basicConfig(level=args.loglevel)
-# <add other setup here>
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='This script processes a graph.')
+    parser.add_argument('-d', '--debug',
+                        help='Print lots of debugging statements',
+                        action="store_const", dest="loglevel", const=logging.DEBUG,
+                        default=logging.WARNING
+                       )
+    parser.add_argument('-v', '--verbose',
+                        help='Be verbose',
+                        action="store_const", dest="loglevel", const=logging.INFO
+                       )
+    parser.add_argument('--log', help='Location of log file', default=None)
+    # <add arguments here>
+    #args = parser.parse_args()
+    ## Set up Logging
+    #if args.log is not None:
+    #    logging.basicConfig(filename=args.log, level=args.loglevel)
+    #else:
+    #    logging.basicConfig(level=args.loglevel)
+    # <add other setup here>
 
 
 ## EXECUTION

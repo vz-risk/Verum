@@ -91,20 +91,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'Type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, None]
+                return [None, False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed, plugin_type]
+                return [plugin_type, False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, plugin_type]
+                return [plugin_type, False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
             else:
-                return [True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed, plugin_type]
+                return [plugin_type, True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
 
 
         def run(self, domain, include_subdomain=False):

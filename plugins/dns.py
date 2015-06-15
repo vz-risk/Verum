@@ -82,16 +82,16 @@ class PluginOne(IPlugin):
             plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, None]
+            return [None, False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
 
         if 'inputs' in config_options:
             inputs = config.get('Configuration', 'Inputs')
             inputs = [l.strip().lower() for l in inputs.split(",")]
         else:
             logging.error("No input types specified in config file.")
-            return [False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed, plugin_type]
+            return [plugin_type, False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
 
-        return [True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed, plugin_type]
+        return [plugin_type, True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
 
 
     def run(self, domain):

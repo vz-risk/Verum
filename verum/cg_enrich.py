@@ -29,19 +29,15 @@ under the License.
 """
 # PRE-USER SETUP
 from datetime import timedelta
+import logging
 
 ########### NOT USER EDITABLE ABOVE THIS POINT #################
 
 
 # USER VARIABLES
 CONFIG_FILE = "/tmp/verum.cfg"
-# Below values will be overwritten if in the config file or specified at the command line
-TITAN_HOST = "localhost"
-TITAN_PORT = "8182"
-TITAN_GRAPH = "vzgraph"
-PluginFolder = "./plugins"
-NEO4J_HOST = 'localhost'
-NEO4J_PORT = '7474'
+LOGLEVEL = logging.INFO
+LOG = None
 
 
 
@@ -51,7 +47,6 @@ NEO4J_PORT = '7474'
 ## IMPORTS
 import imp
 import argparse
-import logging
 from datetime import datetime # timedelta imported above
 # todo: Import with IMP and don't import the titan graph functions if they don't import
 try:
@@ -75,42 +70,71 @@ import ConfigParser
 import sqlite3
 import networkx as nx
 import os
-print os.getcwd()
 
 ## SETUP
 __author__ = "Gabriel Bassett"
 # Parse Arguments - Will overwrite Config File
-parser = argparse.ArgumentParser(description='This script processes a graph.')
-parser.add_argument('-d', '--debug',
-                    help='Print lots of debugging statements',
-                    action="store_const", dest="loglevel", const=logging.DEBUG,
-                    default=logging.WARNING
-                   )
-parser.add_argument('-v', '--verbose',
-                    help='Be verbose',
-                    action="store_const", dest="loglevel", const=logging.INFO
-                   )
-parser.add_argument('--log', help='Location of log file', default=None)
-parser.add_argument('--plugins', help="Location of plugin directory", default=None)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='This script processes a graph.')
+    parser.add_argument('-d', '--debug',
+                        help='Print lots of debugging statements',
+                        action="store_const", dest="loglevel", const=logging.DEBUG,
+                        default=logging.WARNING
+                       )
+    parser.add_argument('-v', '--verbose',
+                        help='Be verbose',
+                        action="store_const", dest="loglevel", const=logging.INFO
+                       )
+    parser.add_argument('--log', help='Location of log file', default=None)
+    parser.add_argument('--plugins', help="Location of plugin directory", default=None)
 
 
 # Read Config File - Will overwrite file User Variables Section
-config = ConfigParser.SafeConfigParser()
-config.readfp(open(CONFIG_FILE))
-
-if config.has_section('Core'):
-    if 'plugins' in config.options('Core'):
-        PluginFolder = config.get('Core', 'plugins')
-
+log = LOG
+loglevel = LOGLEVEL
+try:
+    config = ConfigParser.SafeConfigParser()
+    config.readfp(open(CONFIG_FILE))
+    config_file = True
+except Exception as e:
+    config_file = False
+    logging.warning("Config import failed with error {0}".format(e))
+# If the config file loaded...
+if config_file:
+    if config.has_section('Core'):
+        if 'plugins' in config.options('Core'):
+            PluginFolder = config.get('Core', 'plugins')
+    if config.has_section('LOGGING'):
+        if 'level' in config.options('LOGGING'):
+            level = config.get('LOGGING', 'level')
+            if level == 'debug':
+                loglevel = logging.DEBUG
+            elif level == 'verbose':
+                loglevel = logging.INFO
+            else:
+                loglevel = logging.WARNING
+        else:
+            loglevel = logging.WARNING
+        if 'log' in config.options('LOGGING'):
+            log = config.get('LOGGING', 'log')
+        else:
+            log = None
 ## Set up Logging
-args = parser.parse_args()
-if args.log is not None:
-    logging.basicConfig(filename=args.log, level=args.loglevel)
+if __name__ == "__main__":
+    args = parser.parse_args()
+    if args.log is not None:
+        log = args.log
+    if args.loglevel != logging.Warning:
+        loglevel = args.loglevel
+    # Get plugins folder
+    if args.plugins:
+        PluginFolder = args.plugins
+
+if log:
+    logging.basicConfig(filename=log, level=loglevel)
 else:
-    logging.basicConfig(level=args.loglevel)
-# Get plugins folder
-if args.plugins:
-    PluginFolder = args.plugins
+    logging.basicConfig(level=loglevel)
+
 
 ## EXECUTION
 #TODO: Selectively import classes based on modules that imported
@@ -133,27 +157,33 @@ class enrich():
     enrichment_db = None
     plugins = None
     storage = None
+    PluginFolder = None
 
-    def __init__(self):
-
-        # Set up the TitanDB Config
-        self.set_titan_config(args.titan_host, args.titan_port, args.titan_graph)
-
-        # Set up the Neo4j Config
-        self.set_neo4j_config(args.neo4j_host, args.neo4j_port)
+    def __init__(self, PluginFolder=PluginFolder):
+        #global PluginFolder
+        self.PluginFolder = PluginFolder
 
         # Load enrichments database
         self.enrichment_db = self.set_enrichment_db()
 
         # Load the plugins Directory
-        self.load_plugins()
-        # TODO: set up the plugin directory
+        if self.PluginFolder:
+            self.load_plugins()
+        else:
+            logging.warning("Plugin folder not doesn't exist.  Plugins not configured.  Please run set_plugin_folder(<PluginFolder>) to set the plugin folder and then load_plugins() to load plugins.")
+
+
+    def set_plugin_folder(self, PluginFolder):
+        self.PluginFolder = PluginFolder
+
+    def get_plugin_folder(self):
+        return self.PluginFolder
 
     # Load the plugins from the plugin directory.
     def load_plugins(self):
         print "Configuring Plugin manager."
         self.plugins = PluginManager()
-        self.plugins.setPluginPlaces([PluginFolder])
+        self.plugins.setPluginPlaces([self.PluginFolder])
         #self.plugins.collectPlugins()
         self.plugins.locatePlugins()
         self.plugins.loadPlugins()
@@ -165,20 +195,20 @@ class enrich():
             print "Configuring plugin {0}.".format(plugin.name)
             plugin_config = plugin.plugin_object.configure()
             # Insert enrichment
-            if plugin_config[6] == 'enrichment': # type
-                cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[1], # Name
-                                                                               int(plugin_config[0]), # Enabled
-                                                                               plugin_config[2], # Descripton
-                                                                               plugin_config[4], # Cost
-                                                                               plugin_config[5]) # Speed 
+            if plugin_config[0] == 'enrichment': # type
+                cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[2], # Name
+                                                                               int(plugin_config[1]), # Enabled
+                                                                               plugin_config[3], # Descripton
+                                                                               plugin_config[5], # Cost
+                                                                               plugin_config[6]) # Speed 
 
                 )
-                for inp in plugin_config[3]: # inputs
+                for inp in plugin_config[4]: # inputs
                     # Insert into inputs table
-                    cur.execute('''INSERT INTO inputs VALUES (?,?)''', (plugin_config[1], inp))
+                    cur.execute('''INSERT INTO inputs VALUES (?,?)''', (plugin_config[2], inp))
                 self.enrichment_db.commit()
-            elif plugin_config[6] == 'interface': # type
-                cur.execute('''INSERT INTO storage VALUES (?, ?)''', (int(plugin_config[0]), plugin_config[1]))
+            elif plugin_config[0] == 'interface': # type
+                cur.execute('''INSERT INTO storage VALUES (?, ?)''', (plugin_config[2], int(plugin_config[1])))
 
 
     def set_interface(self, interface):
@@ -220,6 +250,8 @@ class enrich():
                                              configured int
                                             );''')
         conn.commit()
+
+        return conn
 
 
     def get_inputs(self):

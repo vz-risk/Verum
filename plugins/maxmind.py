@@ -111,22 +111,22 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, None]
+                return [None, False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed, plugin_type]
+                return [plugin_type, False, 'maxmind', "Takes an IP and returns the ASN of the IP.", None, cost, speed]
 
             if not self.dat_file_success:
-                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
+                return [plugin_type, False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
             elif not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
+                return [plugin_type, False, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
             else:
-                return [True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed, plugin_type]
+                return [plugin_type, True, "maxmind", "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
 
 
         def run(self, ip, start_time=""):

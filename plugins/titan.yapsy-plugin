@@ -10,7 +10,12 @@ Description = Provides the ability to enrich a CAGS context graph stored in Tita
 
 [Configuration]
 Type = interface
+
+[titanDB]
 host = "localhost"
 port = "8182"
 graph = "vzgraph"
-logging = debug
+
+[Log]
+level = debug
+# file = ./logfile.log

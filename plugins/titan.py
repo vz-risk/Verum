@@ -79,13 +79,13 @@ i = loc.rfind("/")
 loc = loc[:i+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + TITAN_CONFIG_FILE))
-if config.has_section('TITANDB'):
-    if 'host' in config.options('TITANDB'):
-        TITAN_HOST = config.get('TITANDB', 'host')
-    if 'port' in config.options('TITANDB'):
-        TITAN_PORT = config.get('TITANDB', 'port')
-    if 'graph' in config.options('TITANDB'):
-        TITAN_GRAPH = config.get('TITANDB', 'graph')
+if config.has_section('titanDB'):
+    if 'host' in config.options('titanDB'):
+        TITAN_HOST = config.get('titanDB', 'host')
+    if 'port' in config.options('titanDB'):
+        TITAN_PORT = config.get('titanDB', 'port')
+    if 'graph' in config.options('titanDB'):
+        TITAN_GRAPH = config.get('titanDB', 'graph')
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
@@ -132,6 +132,7 @@ class PluginOne(IPlugin):
 
         :return: return list of [configure success (bool), name (str)]
         """
+        config_options = config.options("Configuration")
 
         # Create titan config
         # Import host, port, graph from config file
@@ -147,8 +148,13 @@ class PluginOne(IPlugin):
             success = False
 
         # Return
-        return [success, module]
-        
+        if 'type' in config_options:
+            plugin_type = config.get('Configuration', 'type')
+        else:
+            logging.error("'Type' not specified in config file.")
+            return [None, success, module]
+        return [plugin_type, success, module]
+  
 
     def set_titan_config(self, host, port, graph):
         self.titan_config = TITAN_Config('http://{0}:{1}/graphs/{2}'.format(host, port, graph))

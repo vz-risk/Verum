@@ -103,20 +103,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, None]
+                return [None, False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed, plugin_type]
+                return [plugin_type, False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, plugin_type]
+                return [plugin_type, False, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
             else:
-                return [True, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed, plugin_type]
+                return [plugin_type, True, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
 
 
         def run(self, record, start_time=""):

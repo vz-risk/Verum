@@ -22,8 +22,12 @@ specific language governing permissions and limitations
 under the License.
 '''
 
-__all__ = [ 'verum',
-            'cg_present',
+
+__all__ = [ 'cg_present',
             'cg_query',
             'cg_enrich'
           ]
+# Import the packages
+from cg_enrich import enrich
+import cg_present
+import cg_query

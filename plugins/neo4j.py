@@ -76,11 +76,11 @@ i = loc.rfind("/")
 loc = loc[:i+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + NEO4J_CONFIG_FILE))
-if config.has_section('NEO4j'):
-    if 'host' in config.options('NEO4J'):
-        NEO4J_HOST = config.get('NEO4J', 'host')
-    if 'port' in config.options('NEO4J'):
-        NEO4J_PORT = config.get('NEO4J', 'port')
+if config.has_section('neo4j'):
+    if 'host' in config.options('neo4j'):
+        NEO4J_HOST = config.get('neo4j', 'host')
+    if 'port' in config.options('neo4j'):
+        NEO4J_PORT = config.get('neo4j', 'port')
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
@@ -131,7 +131,13 @@ class PluginOne(IPlugin):
             success = False
 
         # Return
-        return [success, module]
+        if 'type' in config_options:
+            plugin_type = config.get('Configuration', 'type')
+        else:
+            logging.error("'Type' not specified in config file.")
+            return [None, success, module]
+        return [plugin_type, success, module]
+
 
     def set_neo4j_config(self, host, port):
         self.neo4j_config = "http://{0}:{1}/db/data/".format(host, port)

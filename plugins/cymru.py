@@ -112,20 +112,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed, None]
+                return [None, False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed, plugin_type]
+                return [plugin_type, False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [False, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, plugin_type]
+                return [plugin_type, False, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
             else:
-                return [True, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed, plugin_type]
+                return [plugin_type, True, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
 
 
         def run(self, ips, start_time = ""):
