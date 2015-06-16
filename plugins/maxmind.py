@@ -82,6 +82,7 @@ if module_import_success:
                 maxmind_file = config.get('Configuration', 'dat_file')
                 if maxmind_file[0] != "/":
                     maxmind_file = loc + maxmind_file
+                #print maxmind_file  # DEBUG
                 self.gi = GeoIP.open(maxmind_file, GeoIP.GEOIP_STANDARD)
                 self.dat_file_success = True
             except:
@@ -90,6 +91,7 @@ if module_import_success:
                 try:
                     if dat_file[0] != "/":
                         dat_file = loc + dat_file
+                    #print dat_file  # DEBUG
                     self.gi = GeoIP.open(dat_file, GeoIP.GEOIP_STANDARD)
                     self.dat_file_success = True
                 except:
@@ -169,6 +171,11 @@ if module_import_success:
 
             # retrieve maxmind enrichment
             ASN = gi.name_by_addr(ip)
+
+            #print ASN  # DEBUG
+            #print type(gi)  # DEBUG
+            #print ip  # DEBUG
+
             if ASN:
                 ASN = ASN.split(" ", 1)
 

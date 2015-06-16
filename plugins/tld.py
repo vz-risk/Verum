@@ -149,7 +149,7 @@ if module_import_success:
             g.add_node(tld_uri, {
                 'class': 'attribute',
                 'key': "domain",
-                "value": ext.suffice,
+                "value": ext.suffix,
                 "start_time": now,
                 "uri": tld_uri
             })
@@ -252,3 +252,5 @@ if module_import_success:
                 edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
             edge_attr["uri"] = edge_uri
             g.add_edge(domain_uri, tld_extract_uri, edge_uri, edge_attr)
+
+            return g

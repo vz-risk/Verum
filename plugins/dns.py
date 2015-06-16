@@ -99,7 +99,7 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
 
 
-    def run(self, domain):
+    def run(self, domain, start_time):
         """
 
         :param domain: a string containing a domain to lookup up
@@ -115,7 +115,7 @@ class PluginOne(IPlugin):
             'class': 'attribute',
             'key': "domain",
             "value": domain,
-            "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),  # graphml does not support 'none'
+            "start_time": now,  # graphml does not support 'none'
             "uri": domain_uri
         })
 

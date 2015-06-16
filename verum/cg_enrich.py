@@ -192,7 +192,6 @@ class enrich():
         # Loop round the plugins and print their names.
         cur = self.enrichment_db.cursor()
         for plugin in self.plugins.getAllPlugins():
-            print "Configuring plugin {0}.".format(plugin.name)
             plugin_config = plugin.plugin_object.configure()
             # Insert enrichment
             if plugin_config[0] == 'enrichment': # type
@@ -209,6 +208,7 @@ class enrich():
                 self.enrichment_db.commit()
             elif plugin_config[0] == 'interface': # type
                 cur.execute('''INSERT INTO storage VALUES (?, ?)''', (plugin_config[2], int(plugin_config[1])))
+            print "Configured plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1])
 
 
     def set_interface(self, interface):
@@ -266,7 +266,7 @@ class enrich():
         return inputs
 
 
-    def get_enrichments(self, inputs, cost=10, speed=10, enabled=True):
+    def get_enrichments(self, inputs, cost=10000, speed=10000, configured=True):
         """
 
         :param inputs: list of input types.   (e.g. ["ip", "domain"])  All enrichments that match at least 1 input type will be returned.
@@ -277,21 +277,24 @@ class enrich():
         """
         cur = self.enrichment_db.cursor()
 
+        if type(inputs) == str:
+            inputs = [inputs]
+
         plugins = list()
         names = list()
-        for row in cur.execute('''SELECT DISTINCT name FROM inputs WHERE input IN (?)''', (",".join(inputs))):
+        for row in cur.execute('''SELECT DISTINCT name FROM inputs WHERE input IN ({0});'''.format(("?," * len(inputs))[:-1]), inputs):
             names.append(row[0])
         for row in cur.execute('''SELECT DISTINCT name
                                   FROM enrichments
                                   WHERE cost <= ?
                                     AND speed <= ?
                                     AND configured = ?
-                                    AND names IN (?)''',
-                                (cost,
+                                    AND name IN ({0});'''.format(("?," * len(names))[:-1]),
+                                [cost,
                                  speed,
-                                 enabled,
-                                 ",".join(names)
-                               )):
+                                 int(configured)] + 
+                                 names
+                               ):
             plugins.append(row[0])
 
         return plugins
@@ -324,7 +327,8 @@ class enrich():
         :param names: a name (as string) or a list of names of enrichments to use
         :return: None if storage configured (networkx graph representing the enrichment of the topic
         """
-        enrichments = self.get_enrichments([topic_type], cost, speed, enabled=True)
+        enrichments = self.get_enrichments([topic_type], cost, speed, configured=True)
+        #print enrichments  # DEBUG
         g = nx.MultiDiGraph()
 
         # IF a name(s) are given, subset to them
@@ -340,8 +344,8 @@ class enrich():
             # merge the graphs
             for node, props in g2.nodes(data=True):
                 g.add_node(node, props)
-            for edge, props in g2.edges(data=True):
-                g.add_edge()
+            for edge in g2.edges(data=True):
+                g.add_edge(edge[0], edge[1], attr_dict=edge[2])
 
         return g
 

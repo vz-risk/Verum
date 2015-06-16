@@ -12,4 +12,4 @@ Description = Takes an IP string and returns the DNS resolved IP address as netw
 Type = enrichment
 Cost = 3
 Speed = 3
-Inputs = IP
+Inputs = domain
