@@ -42,6 +42,7 @@ TITAN_PORT = "8182"
 TITAN_GRAPH = "vzgraph"
 LOGFILE = None
 LOGLEVEL = logging.INFO
+NAME = 'TitanDB'
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -89,8 +90,8 @@ if config.has_section('titanDB'):
 if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
-    if 'module' in config.options('Core'):
-        module= config.get('Core', 'module')
+    if 'name' in config.options('Core'):
+        NAME = config.get('Core', 'name')
 if config.has_section('Log'):
     if 'level' in config.options('Log'):
         LOGLEVEL = config.get('Log', 'level')
@@ -152,8 +153,8 @@ class PluginOne(IPlugin):
             plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [None, success, module]
-        return [plugin_type, success, module]
+            return [None, success, NAME]
+        return [plugin_type, success, NAME]
   
 
     def set_titan_config(self, host, port, graph):

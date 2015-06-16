@@ -35,6 +35,7 @@ pass
 
 # USER VARIABLES
 TLD_CONFIG_FILE = "tld.yapsy-plugin"
+NAME = "TLD Enrichment"
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -65,6 +66,10 @@ loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + TLD_CONFIG_FILE))
 
+if config.has_section('Core'):
+    if 'name' in config.options('Core'):
+        NAME = config.get('Core', 'name')
+
 ## EXECUTION
 if module_import_success:
     class PluginOne(IPlugin):
@@ -91,20 +96,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'Type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [None, False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
+                return [None, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [plugin_type, False, 'tld', "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
+                return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [plugin_type, False, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+                return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
             else:
-                return [plugin_type, True, "tld", "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+                return [plugin_type, True, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
 
 
         def run(self, domain, include_subdomain=False):

@@ -43,6 +43,7 @@ LOGLEVEL = logging.INFO
 LOGFILE = None
 USERNAME = None
 PASSWORD = None
+NAME = 'Neo4j'
 
 
 
@@ -94,7 +95,7 @@ if config.has_section('Core'):
     if 'plugins' in config.options('Core'):
         PluginFolder = config.get('Core', 'plugins')
     if 'name' in config.options('Core'):
-        name= config.get('Core', 'name')
+        NAME = config.get('Core', 'name')
 if config.has_section('Log'):
     if 'level' in config.options('Log'):
         LOGLEVEL = config.get('Log', 'level')
@@ -144,8 +145,8 @@ class PluginOne(IPlugin):
             plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [None, success, name]
-        return [plugin_type, success, name]
+            return [None, success, NAME]
+        return [plugin_type, success, NAME]
 
 
     def set_neo4j_config(self, host, port, username=None, password=None):
@@ -211,33 +212,38 @@ class PluginOne(IPlugin):
         tx = neo_graph.cypher.begin()
         for edge in g.edges(data=True):
             try:
-                relationship = edge[2].pop('relationship')
+                if 'relationship' in edge[2]:
+                    relationship = edge[2].pop('relationship')
+                else:
+                    # default to 'described_by'
+                    relationship = 'describedBy'
+
+                query = cypher.format(g.node[edge[0]]['class'],
+                                      g.node[edge[1]]['class'],
+                                     "{SRC_ID}",
+                                     "{DST_ID}",
+                                      relationship,
+                                      "{MAP}"
+                                     )
+                props = {
+                    "SRC_ID": node_map[edge[0]],
+                    "DST_ID": node_map[edge[1]],
+                    "MAP": edge[2]
+                }
+
+                # create the edge
+                # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
+                #        The query scripts should handle this.
+        #        print edge, query, props  # DEBUG
+                tx.append(query, props)
+        #        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
+        #        rel.properties.update(edge[2])
+        #        neo_graph.create(rel)  # Debug
+        #        edges.add(rel)
             except:
-                # default to 'described_by'
-                relationship = 'describedBy'
-
-            query = cypher.format(g.node[edge[0]]['class'],
-                                  g.node[edge[1]]['class'],
-                                 "{SRC_ID}",
-                                 "{DST_ID}",
-                                  relationship,
-                                  "{MAP}"
-                                 )
-            props = {
-                "SRC_ID": node_map[edge[0]],
-                "DST_ID": node_map[edge[1]],
-                "MAP": edge[2]
-            }
-
-            # create the edge
-            # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
-            #        The query scripts should handle this.
-    #        print edge, query, props  # DEBUG
-            tx.append(query, props)
-    #        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
-    #        rel.properties.update(edge[2])
-    #        neo_graph.create(rel)  # Debug
-    #        edges.add(rel)
+                print edge
+                print node_map
+                raise
 
         # create edges all at once
         #print edges  # Debug

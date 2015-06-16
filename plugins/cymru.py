@@ -36,7 +36,7 @@ from datetime import timedelta
 
 # USER VARIABLES
 CYMRU_CONFIG_FILE = "cymru.yapsy-plugin"
-
+NAME = 'cymru'
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -63,6 +63,9 @@ loc = loc[:i+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + CYMRU_CONFIG_FILE))
 
+if config.has_section('Core'):
+    if 'name' in config.options('Core'):
+        NAME= config.get('Core', 'name')
 if config.has_section('Configuration') and 'cymru_module' in config.options('Configuration'):
     cymru_file = config.get('Configuration', 'cymru_module')
     if cymru_file[0] != "/":
@@ -81,7 +84,6 @@ if config.has_section('Configuration') and 'cymru_module' in config.options('Con
     except:
         module_import_success = False
         raise
-
 else:
     module_import_success = False
 
@@ -112,20 +114,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [None, False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
+                return [None, False, NAME, "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [plugin_type, False, 'cymru', "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
+                return [plugin_type, False, NAME, "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [plugin_type, False, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
+                return [plugin_type, False, NAME, "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
             else:
-                return [plugin_type, True, "cymru", "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
+                return [plugin_type, True, NAME, "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
 
 
         def run(self, ips, start_time = ""):

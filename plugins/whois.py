@@ -48,7 +48,7 @@ STATES = {'AA': 'armed forces americas', 'AE': 'armed forces middle east', 'AK':
           'SD': 'south dakota', 'TN': 'tennessee', 'TX': 'texas', 'UT': 'utah', 'VA': 'virginia',
           'VI': 'virgin islands', 'VT': 'vermont', 'WA': 'washington', 'WI': 'wisconsin', 'WV': 'west virginia',
           'WY': 'wyoming'}
-
+NAME = "Whois Enrichment"
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
 
@@ -77,6 +77,10 @@ loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + WHOIS_CONFIG_FILE))
 
+if config.has_section('Core'):
+    if 'name' in config.options('Core'):
+        NAME = config.get('Core', 'name')
+
 ## EXECUTION
 if module_import_success:
     class PluginOne(IPlugin):
@@ -103,20 +107,20 @@ if module_import_success:
                 plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
-                return [None, False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
+                return [None, False, NAME, "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
 
             if 'inputs' in config_options:
                 inputs = config.get('Configuration', 'Inputs')
                 inputs = [l.strip().lower() for l in inputs.split(",")]
             else:
                 logging.error("No input types specified in config file.")
-                return [plugin_type, False, 'whois', "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
+                return [plugin_type, False, NAME, "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", None, cost, speed]
 
             if not module_import_success:
                 logging.error("Module import failure caused configuration failure.")
-                return [plugin_type, False, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
+                return [plugin_type, False, NAME, "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
             else:
-                return [plugin_type, True, "whois", "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
+                return [plugin_type, True, NAME, "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
 
 
         def run(self, record, start_time=""):

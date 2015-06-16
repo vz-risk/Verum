@@ -35,6 +35,7 @@ pass
 
 # USER VARIABLES
 DNS_CONFIG_FILE = "dns.yapsy-plugin"
+NAME = "DNS Enrichment"
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -56,6 +57,10 @@ ind = loc.rfind("/")
 loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
 config.readfp(open(loc + DNS_CONFIG_FILE))
+
+if config.has_section('Core'):
+    if 'name' in config.options('Core'):
+        NAME = config.get('Core', 'name')
 
 ## EXECUTION
 class PluginOne(IPlugin):
@@ -82,16 +87,16 @@ class PluginOne(IPlugin):
             plugin_type = config.get('Configuration', 'type')
         else:
             logging.error("'Type' not specified in config file.")
-            return [None, False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
+            return [None, False, NAME, "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
 
         if 'inputs' in config_options:
             inputs = config.get('Configuration', 'Inputs')
             inputs = [l.strip().lower() for l in inputs.split(",")]
         else:
             logging.error("No input types specified in config file.")
-            return [plugin_type, False, 'dns', "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
+            return [plugin_type, False, NAME, "Takes an IP string and returns the DNS resolved IP address as networkx graph.", None, cost, speed]
 
-        return [plugin_type, True, "dns", "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
+        return [plugin_type, True, NAME, "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
 
 
     def run(self, domain):

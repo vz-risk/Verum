@@ -31,11 +31,18 @@ Initialize storage.  In this case, [neo4j] (http://neo4j.com/).
 
 Run the following within your python code or at a python console to initialize the package.
 ```
+# import imp to load verum
 import imp
+# set verum location
 LOCATION = "/Users/v685573/Documents/Development/verum/"
+# import verum
 fp, pathname, description = imp.find_module("verum", [LOCATION])
 VERUM = imp.load_module("verum", fp, pathname, description)
+# Load plugins
 ENRICH = VERUM.enrich("~/Documents/Development/verum/plugins")
+# display loaded plugins directly using yaps
+for plugin in ENRICH.plugins.getAllPlugins():
+    print plugin.name
 ```
 
 Run the following to test enrichment.
@@ -47,19 +54,24 @@ Run the following to test enrichment.
 # TODO: Enrich something
 ```
 
-Run the following to test querying.
+Run the following to test querying.  (Note: the storage interface modules expect graphs to be in a specific schema.  If they are not, the interface module will error trying to store them.)
 ```
 # See what storage interfaces are configured
 print ENRICH.get_interfaces(configured=True)
 # Set the storage interface
-ENRICH.set_interface('neo4j')
+ENRICH.set_interface('Neo4j')
 # Store a test graph
-import network as nx
+import networkx as nx
+import copy
 g = nx.MultiDiGraph()
-g.add_path(range(5))
+node_props = {"class":"attribute", "key":"name", "value":0}
 for i in range(5):
-    node_props["value"] = i
-    g.node[i] = node_props
+    attr = copy.deepcopy(node_props)
+    attr["value"] = i
+    uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
+    g.add_node(uri, attr)
+for i in range(len(g.nodes())-1):
+    g.add_edge(g.nodes()[i], g.nodes()[i+1])
 ENRICH.store_graph(g)
 ```
 
