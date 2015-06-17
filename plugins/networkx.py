@@ -154,6 +154,25 @@ class PluginOne(IPlugin):
             self.context_graph.add_edge(edge[0], edge[1], attr_dict=data)
 
 
+    def query(self, topic, max_depth=4, config=None, dont_follow=['enrichment', 'classification']):
+        """
+
+        :param neo_conf:
+        :param topic:
+        :param max_depth:
+        :return:
+        """
+        g = networkx.MultiDiGraph()
+
+        if config is None:
+            config = self.context_graph
+
+        #  TODO: Implement
+        logging.warning("Not yet implemented.")
+
+        return g
+
+
     def get_graph(self):
         return self.context_graph
 
