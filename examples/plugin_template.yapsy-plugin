@@ -1,6 +1,6 @@
 [Core]
 Name = <plugin name>
-Module = <plugin module name.  (normally short & all one word)>
+Module = <the file name of the associated plugin, minus the '.py'>
 
 [Documentation]
 Author = Gabriel Bassett
@@ -10,9 +10,6 @@ Description = <description>
 
 [Configuration]
 Type = <type: interface, enrichment, query, minion>
-
-! Plugin specific section
-[<plugin name>]
 <variable1> = <value 1>
 <variable2> = <value 2>
 

@@ -36,7 +36,7 @@ pass
 
 
 # USER VARIABLES
-TLD_CONFIG_FILE = "plugin_template.yapsy-plugin"
+PLUGIN_CONFIG_FILE = "plugin_template.yapsy-plugin"
 NAME = "<NAME FROM CONFIG FILE AS BACKUP IF CONFIG FILE DOESN'T LOAD>"
 
 
@@ -65,11 +65,17 @@ loc = inspect.getfile(inspect.currentframe())
 ind = loc.rfind("/")
 loc = loc[:ind+1]
 config = ConfigParser.SafeConfigParser()
-config.readfp(open(loc + TLD_CONFIG_FILE))
+config.readfp(open(loc + PLUGIN_CONFIG_FILE))
 
 if config.has_section('Core'):
     if 'name' in config.options('Core'):
         NAME = config.get('Core', 'name')
+if config.has_section('Log'):
+    if 'level' in config.options('Log'):
+        LOGLEVEL = config.get('Log', 'level')
+    if 'file' in config.options('Log'):
+        LOGFILE = config.get('Log', 'file')
+
 
 ## EXECUTION
 if module_import_success:
@@ -101,7 +107,7 @@ if module_import_success:
                 speed = 9999
 
             if 'type' in config_options:
-                plugin_type = config.get('Configuration', 'Type')
+                plugin_type = config.get('Configuration', 'type')
             else:
                 logging.error("'Type' not specified in config file.")
                 return [None, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
@@ -126,7 +132,22 @@ if module_import_success:
         #  TODO: query [TBD]
         #  TODO: minion [TBD] 
         #  TODO: Enrichment plugin specifics:
-        #      FILL ME IN
+        #  -     Created nodes/edges must follow http://blog.infosecanalytics.com/2014/11/cyber-attack-graph-schema-cags-20.html
+        #  -     The enrichment should include a node for the <thing to enrich>
+        #  -     The enrichment should include a node for the enrichment which is is statically defined & key of "enrichment"
+        #  -     An edge should exist from <thing to enrich> to the enrichment node, created at the end after enrichment
+        #  -     Each enrichment datum should have a node
+        #  -     An edge should exist from <thing to enrich> to each enrichment datum
+        #  -     The run function should then return a networkx directed multi-graph including the nodes and edges
+        #  TODO: Interface plugin specifics:
+        #  -     In the most efficient way possible, merge nodes and edges into the storage medium
+        #  -     Merger of nodes should be done based on matching key & value.
+        #  -     URI should remain static for a given node.
+        #  -     Start time should be updated to the sending graph
+        #  -     Edges should be added w/o attempts to merge with edges in the storage back end
+        #  -     When adding nodes it is highly recommended to keep a node-to-storage-id mapping with a key of the node
+        #  -       URI.  This will assist in bulk-adding the edges.
+
         def run(self, domain, start_time="", include_subdomain=False):
             """
 
@@ -269,3 +290,94 @@ if module_import_success:
             g.add_edge(domain_uri, tld_extract_uri, edge_uri, edge_attr)
 
             return g
+
+
+       def enrich(self, g):  # Neo4j
+            """
+
+            :param g: networkx graph to be merged
+            :param neo4j: bulbs neo4j config
+            :return: Nonetype
+
+            Note: Neo4j operates differently from the current titan import.  The neo4j import does not aggregate edges which
+                   means they must be handled at query time.  The current titan algorithm aggregates edges based on time on
+                   merge.
+            """
+            #neo4j_graph = NEO_Graph(neo4j)  # Bulbs
+            neo_graph = py2neoGraph(self.neo4j_config)
+            nodes = set()
+            node_map = dict()
+            edges = set()
+            settled = set()
+            # Merge all nodes first
+            tx = neo_graph.cypher.begin()
+            cypher = ("MERGE (node: {0} {1}) "
+                      "ON CREATE SET node = {2} "
+                      "RETURN collect(node) as nodes"
+                     )
+            # create transaction for all nodes
+            for node, data in g.nodes(data=True):
+                query = cypher.format(data['class'], "{key:{KEY}, value:{VALUE}}", "{MAP}")
+                props = {"KEY": data['key'], "VALUE":data['value'], "MAP": data}
+                # TODO: set "start_time" and "finish_time" to dummy variables in attr.
+                # TODO:  Add nodes to graph, and cyper/gremlin query to compare to node start_time & end_time to dummy
+                # TODO:  variable update if node start > dummy start & node finish < dummy finish, and delete dummy
+                # TODO:  variables.
+                tx.append(query, props)
+            # commit transaction and create mapping of returned nodes to URIs for edge creation
+            for record_list in tx.commit():
+                for record in record_list:
+        #            print record, record.nodes[0]._Node__id, len(record.nodes)
+                    for n in record.nodes:
+        #                print n._Node__id
+                        attr = n.properties
+                        uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
+                        node_map[uri] = int(n.ref.split("/")[1])
+        #                node_map[uri] = n._Node__id
+        #    print node_map  # DEBUG
+
+            # Create edges
+            cypher = ("MATCH (src: {0}), (dst: {1}) "
+                      "WHERE id(src) = {2} AND id(dst) = {3} "
+                      "CREATE (src)-[rel: {4} {5}]->(dst) "
+                     )
+            tx = neo_graph.cypher.begin()
+            for edge in g.edges(data=True):
+                try:
+                    if 'relationship' in edge[2]:
+                        relationship = edge[2].pop('relationship')
+                    else:
+                        # default to 'described_by'
+                        relationship = 'describedBy'
+
+                    query = cypher.format(g.node[edge[0]]['class'],
+                                          g.node[edge[1]]['class'],
+                                         "{SRC_ID}",
+                                         "{DST_ID}",
+                                          relationship,
+                                          "{MAP}"
+                                         )
+                    props = {
+                        "SRC_ID": node_map[edge[0]],
+                        "DST_ID": node_map[edge[1]],
+                        "MAP": edge[2]
+                    }
+
+                    # create the edge
+                    # NOTE: No attempt is made to deduplicate edges between the graph to be merged and the destination graph.
+                    #        The query scripts should handle this.
+            #        print edge, query, props  # DEBUG
+                    tx.append(query, props)
+            #        rel = py2neoRelationship(node_map[src_uri], relationship, node_map[dst_uri])
+            #        rel.properties.update(edge[2])
+            #        neo_graph.create(rel)  # Debug
+            #        edges.add(rel)
+                except:
+                    print edge
+                    print node_map
+                    raise
+
+            # create edges all at once
+            #print edges  # Debug
+        #    neo_graph.create(*edges)
+            tx.commit()

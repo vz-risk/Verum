@@ -1,0 +1,17 @@
+[Core]
+Name = Networkx Interface
+Module = networkx
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Reads a graph file into memory, stores the graph in a networkx graph in memory, and writes the graph back with .write()
+
+[Configuration]
+Type = interface
+context_graph_file = "/tmp/verum.graphml"
+
+[Log]
+level = debug
+# file = ./logfile.log

@@ -178,7 +178,6 @@ Finally, Attempt to enrich multiple pieces of data to form a robust context grap
 for ip in ips:
     ENRICH.store_graph(ENRICH.run_enrichments(ip, 'ip', names=[u'Maxmind ASN Enrichment']))
 # Enrich Domains (passing exceptions so if a plugin fails it doesn't stop the loop)
-ENRICH.set_interface('Neo4j')
 for domain in domains:
     try:
         ENRICH.store_graph(ENRICH.run_enrichments(domain, 'domain', names=[u'DNS Enrichment', u'TLD Enrichment']))
