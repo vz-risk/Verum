@@ -73,6 +73,7 @@ import sqlite3
 import networkx as nx
 import os
 import inspect
+import uuid
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -251,5 +252,94 @@ class PluginOne(IPlugin):
         tx.commit()
 
 
+    def query(self, topic, max_depth=4, neo_conf=None, dont_follow=['enrichment', 'classification']):
+        """
 
+        :param neo_conf:
+        :param topic:
+        :param max_depth:
+        :return:
+        """
+        if neo_conf is None:
+            neo_conf = self.neo4j_config
 
+        neo_graph = py2neoGraph(neo_conf)
+        sg = nx.MultiDiGraph()
+
+        # Get IDs of topic nodes in graph (if they exist).  Also add topics to subgraph
+        topic_ids = set()
+        for t, data in topic.nodes(data=True):
+            cypher = ("MATCH (topic: {0} {1}) "
+                      "RETURN collect(topic) as topics").format(data['class'], "{key:{KEY}, value:{VALUE}}")
+            props = {"KEY":data['key'], "VALUE":data['value']}
+            records = neo_graph.cypher.execute(cypher, props)
+            #print type(records)
+            for record in records:
+                #print record  # DEBUG
+                for topic in record.topics:
+                    attr = dict(topic.properties)
+                    uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
+                    sg.add_node(uri, attr)
+                    topic_ids.add(topic.ref.split("/")[-1])
+
+        # Add nodes at depth 1  (done separately as it doesn't include the intermediary
+        nodes = dict()
+        if max_depth > 0:
+            if max_depth == 1:
+                cypher = ("path=MATCH (topic)-[rel:describedBy|influences]-(node: attribute)"
+                          "WHERE id(topic) IN {TOPICS}"
+                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes ")
+                attr = {"TOPICS":list(topic_ids)}
+            else:
+                cypher = ("MATCH path=(topic: attribute)-[rel:describedBy|influences]-(node: attribute) "
+                          "WHERE id(topic) IN {TOPICS} "
+                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes "
+                          "UNION "
+                          "MATCH path=(topic: attribute)-[rel1: describedBy|influences]-(intermediate: attribute)-[rel2: describedBy|influences]-(node: attribute) "
+                          "WHERE id(topic) IN {TOPICS} AND NOT intermediate.key in {DONT_FOLLOW} and length(path) <= {MAX_DEPTH} "
+                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes ")
+                attr = {"MAX_DEPTH": max_depth,
+                        "TOPICS": list(topic_ids),
+                        "DONT_FOLLOW": dont_follow}
+            # for record in neo_graph.cypher.stream(cypher, attr):  # TODO: Would prefer streaming but it errore
+            for record in neo_graph.cypher.execute(cypher, attr):
+                for node in record.nodes:
+                    attr = dict(node.properties)
+                    uri = 'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
+                    sg.add_node(uri, attr)
+                    nodes[node.ref.split("/")[-1]] = uri
+                for rel in record.rels:
+    #                print type(rel) # DEBUG
+                    # add edges SRC node
+    #                src_attr = dict(rel.start_node.properties)
+    #                src_uri = u"class={0}&key={1}&value={2}".format(src_attr['class'], src_attr['key'], src_attr['value'])
+    #                sg.add_node(src_uri, src_attr)
+                    src_uri = nodes[rel.start_node.ref.split("/")[-1]]  # src node uri from neo4j ID
+
+                    # Add edge DST node
+    #                dst_attr = dict(rel.end_node.properties)
+    #                dst_uri = u"class={0}&key={1}&value={2}".format(dst_attr['class'], dst_attr['key'], dst_attr['value'])
+    #                sg.add_node(dst_uri, dst_attr)
+                    dst_uri = nodes[rel.end_node.ref.split("/")[-1]]  # dst node uri from neo4j ID
+
+                    # add edge
+                    edge_attr = dict(rel.properties)
+                    edge_attr['relationship'] = rel.type
+                    source_hash = uuid.uuid3(uuid.NAMESPACE_URL, src_uri)
+                    dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dst_uri)
+                    edge_uri = u"source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+                    rel_chain = u"relationship"
+                    while rel_chain in edge_attr:
+                        edge_uri = edge_uri + u"&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+                        rel_chain = edge_attr[rel_chain]
+                    if "origin" in edge_attr:
+                        edge_uri += u"&{0}={1}".format(u"origin", edge_attr["origin"])
+                    edge_attr["uri"] = edge_uri
+                    sg.add_edge(src_uri, dst_uri, edge_uri, edge_attr)
+
+        # TODO:  Handle duplicate edges (may dedup but leave in for now)
+        #          Take edges into dataframe
+        #          group by combine on features to be deduplicated.  Return edge_id's in each group.  Combine those edge_ids using a combine algorithm
+        #          Could do the same with dedup algo, but just return the dedup edge_ids and delete them from the graph
+
+        return sg
