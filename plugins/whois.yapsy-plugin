@@ -12,4 +12,4 @@ Description = Takes a whois record as a list of strings in a specific format and
 Type = enrichment
 Cost = 1
 Speed = 1
-Inputs = whois record
+Inputs = domain

@@ -2,7 +2,7 @@
 """
  AUTHOR: Gabriel Bassett
  DATE: 12-17-2013
- DEPENDENCIES: a list of modules requiring installation
+ DEPENDENCIES: ipwhois
  Copyright 2014 Gabriel Bassett
 
  LICENSE:
@@ -61,12 +61,13 @@ import networkx as nx
 from datetime import datetime # timedelta imported above
 import uuid
 import inspect
+import socket
 try:
-    import tldextract
+    from ipwhois import IPWhois
     module_import_success = True
 except:
     module_import_success = False
-    logging.error("Module import failed.  Please install the following module: tldextract.")
+    logging.error("Module import failed.  Please install the following module: ipwhois.")
     raise
 
 ## SETUP
@@ -123,7 +124,40 @@ if module_import_success:
                 return [plugin_type, True, NAME, "Takes a whois record as a list of strings in a specific format and returns a networkx graph of the information.", inputs, cost, speed]
 
 
-        def run(self, record, start_time=""):
+        def run(self, domain, start_time=""):
+            ip = socket.gethostbyname(domain)  # This has a habit of failing
+            record = [None] * 10
+            obj = IPWhois(ip)
+            results = obj.lookup()
+
+            for i in range(len(results['nets'])):
+                net = results['nets'][i]
+                record[0] = i
+                if "updated" in net:
+                    record[1] = net['updated'][:10]
+                elif "created" in net:
+                    record[1] = net['created'][:10]
+                record[2] = domain
+                if "name" in net:
+                    record[3] = net['name']
+                if "organization" in net:
+                    record[4] = net['organization']
+                if 'address' in net:
+                    record[5] = net['address']
+                if 'city' in net:
+                    record[6] = net['city']
+                if 'state' in net:
+                    record[7] = net['state']
+                if 'country' in net:
+                    record[8] = net['country']
+                if 'misc_emails' in net and net['misc_emails'] is not None:
+                    emails = net['misc_emails'].split("\n")
+                    record[9] = emails[0]
+
+                self.enrich_record(record, start_time)
+
+
+        def enrich_record(self, record, start_time=""):
             """
 
             :param record: Takes a domain name as a list: [row,Date,Domain,Reg_name,Reg_org,Reg_addr,Reg_city,Reg_state,Reg_country,Reg_email]
@@ -147,13 +181,13 @@ if module_import_success:
                 _ = tldextract.extract(record[2])
             except:
                 raise ValueError("Record domain is not valid.")
-            if type(record[3]) in (int, str, None) and \
-                type(record[4]) in (int, str, None) and \
-                type(record[5]) in (int, str, None) and \
-                type(record[6]) in (int, str, None) and \
-                type(record[7]) in (int, str, None) and \
-                type(record[8]) in (int, str, None) and \
-                type(record[9]) in (int, str, None):
+            if type(record[3]) in (int, str, type(None)) and \
+                type(record[4]) in (int, str, type(None)) and \
+                type(record[5]) in (int, str, type(None)) and \
+                type(record[6]) in (int, str, type(None)) and \
+                type(record[7]) in (int, str, type(None)) and \
+                type(record[8]) in (int, str, type(None)) and \
+                type(record[9]) in (int, str, type(None)):
                 pass
             else:
                 raise ValueError("Record contains incompatible types.")

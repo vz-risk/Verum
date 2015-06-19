@@ -158,17 +158,40 @@ class PluginOne(IPlugin):
         """
 
         :param neo_conf:
-        :param topic:
+        :param topic: 
         :param max_depth:
         :return:
         """
-        g = networkx.MultiDiGraph()
 
         if config is None:
             config = self.context_graph
 
-        #  TODO: Implement
-        logging.warning("Not yet implemented.")
+        # Conver topic from a graph into a set of nodes
+        topic_nodes = set()
+        for n, d in topic.nodes(data=True):
+            topic_nodes.add("class={0}&key={1}&value={2}".format(d['class'], d['key'], d['value']))
+
+        nodes = topic_nodes.copy()
+
+        # get all nodes within max_depth distance from each topic and add them to the set
+        for t in topic:
+            nodes.add(nx.single_source_shortest_path_length(self.context_graph, t, cutoff=max_depth).keys())
+
+        # remove dont_follow nodes:
+        nodes_to_remove = set()
+        for n in nodes:
+            if self.context_graph.node[n]['key'] in dont_follow:
+                nodes_to_remove.add(n)
+        nodes = nodes.difference(nodes_to_remove)
+
+        # Get the subgraph represented by the nodes:
+        g = nx.subgraph(nodes)
+
+        # Prune out non-relevant components by removing those that contain no topic nodes.
+        #  This gets ride of nodes that were found by following dont_follow nodes
+        for component in nx.connected_components(g.to_undirected()):
+            if len(topic_nodes.intersection(set(component))) <= 0:  # if there's no overlap betweent the component and topic
+                g.remove_nodes_from(component)  # remove the component
 
         return g
 

@@ -40,7 +40,7 @@ LOCATION = "/Users/v685573/Documents/Development/verum/"
 # import verum
 fp, pathname, description = imp.find_module("verum", [LOCATION])
 VERUM = imp.load_module("verum", fp, pathname, description)
-# Load plugins
+# Load plugins. NOTE: if your directory is wrong, you won't receive an error but will see no individual plugins listed as successfully configured.
 ENRICH = VERUM.enrich("~/Documents/Development/verum/plugins")
 # display loaded plugins directly using yapsy
 for plugin in ENRICH.plugins.getAllPlugins():
