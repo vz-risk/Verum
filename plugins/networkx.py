@@ -75,17 +75,11 @@ class PluginOne(IPlugin):
     context_graph = nx.MultiDiGraph()
     context_graph_file = None
 
-    #  TODO: The init should contain anything to load modules or data files that should be variables of the  plugin object
     def __init__(self):
         if 'context_graph_file' in config.options("Configuration"):
             self.context_graph_file = config.get('Configuration', 'context_graph_file')
 
-    #  TODO: Configuration needs to set the values needed to identify the plugin in the plugin database as well as ensure everyhing loaded correctly
-    #  TODO: Current  layout is for an enrichment plugin
-    #  TODO: enrichment [type, successful_load, name, description, inputs to enrichment such as 'ip', cost, speed]
-    #  TODO: interface [type, successful_load, name]
-    #  TODO: query [TBD]
-    #  TODO: minion [TBD]
+
     def configure(self):
         """
 
@@ -95,9 +89,11 @@ class PluginOne(IPlugin):
 
         if os.path.isfile(self.context_graph_file):
             try:
-                self.context_graph = self.read_graph(graph_file) 
+                self.context_graph = self.read_graph(self.context_graph_file) 
             except:
                 pass
+        else:
+            logging.info("Networkx file not for import.")
 
         if 'type' in config_options:
             plugin_type = config.get('Configuration', 'type')
@@ -108,27 +104,6 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME]
 
 
-    #  TODO: The correct type of execution function must be defined for the type of plugin
-    #  TODO: enrichment: "run(self, <thing to enrich>, start_time, any specific attributes.  MUST HAVE DEFAULTS)
-    #  TODO: interface: enrich(self, graph)
-    #  TODO: query [TBD]
-    #  TODO: minion [TBD]
-    #  TODO: Enrichment plugin specifics:
-    #  -     Created nodes/edges must follow http://blog.infosecanalytics.com/2014/11/cyber-attack-graph-schema-cags-20.html
-    #  -     The enrichment should include a node for the <thing to enrich>
-    #  -     The enrichment should include a node for the enrichment which is is statically defined & key of "enrichment"
-    #  -     An edge should exist from <thing to enrich> to the enrichment node, created at the end after enrichment
-    #  -     Each enrichment datum should have a node
-    #  -     An edge should exist from <thing to enrich> to each enrichment datum
-    #  -     The run function should then return a networkx directed multi-graph including the nodes and edges
-    #  TODO: Interface plugin specifics:
-    #  -     In the most efficient way possible, merge nodes and edges into the storage medium
-    #  -     Merger of nodes should be done based on matching key & value.
-    #  -     URI should remain static for a given node.
-    #  -     Start time should be updated to the sending graph
-    #  -     Edges should be added w/o attempts to merge with edges in the storage back end
-    #  -     When adding nodes it is highly recommended to keep a node-to-storage-id mapping with a key of the node
-    #  -       URI.  This will assist in bulk-adding the edges.
     def enrich(self, g):  # Networkx
         """
 
@@ -156,11 +131,10 @@ class PluginOne(IPlugin):
 
     def query(self, topic, max_depth=4, config=None, dont_follow=['enrichment', 'classification']):
         """
-
-        :param neo_conf:
-        :param topic: 
-        :param max_depth:
-        :return:
+        :param config: The storage config (in this case a networkx graph)
+        :param topic: a networkx graph of the nodes representing the topic
+        :param max_depth:  The maximum depth to search for the subgraph. (Do not use more than 5 or 6)
+        :return:  a networkx directed multi graph.
         """
 
         if config is None:
@@ -175,7 +149,7 @@ class PluginOne(IPlugin):
 
         # get all nodes within max_depth distance from each topic and add them to the set
         for t in topic:
-            nodes.add(nx.single_source_shortest_path_length(self.context_graph, t, cutoff=max_depth).keys())
+            nodes = nodes.union(set(nx.single_source_shortest_path_length(self.context_graph.to_undirected(), t, cutoff=max_depth).keys()))
 
         # remove dont_follow nodes:
         nodes_to_remove = set()
@@ -185,7 +159,7 @@ class PluginOne(IPlugin):
         nodes = nodes.difference(nodes_to_remove)
 
         # Get the subgraph represented by the nodes:
-        g = nx.subgraph(nodes)
+        g = nx.MultiDiGraph(self.context_graph.subgraph(nodes))
 
         # Prune out non-relevant components by removing those that contain no topic nodes.
         #  This gets ride of nodes that were found by following dont_follow nodes

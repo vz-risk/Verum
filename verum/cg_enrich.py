@@ -336,7 +336,6 @@ class enrich():
             enrichments = set(enrichments).intersection(set(names))
 
         for enrichment in enrichments:
-            # TODO: Test the beloq code
             # get the plugin
             plugin = self.plugins.getPluginByName(enrichment)
             # run the plugin
@@ -348,6 +347,23 @@ class enrich():
                 g.add_edge(edge[0], edge[1], attr_dict=edge[2])
 
         return g
+
+
+    def run_query(self, topic, max_depth=4, dont_follow=['enrichment', 'classification'], storage=None):
+        """
+
+        :param storage: the storage plugin to use
+        :return: a networkx subgraph surrounded around the topic 
+        """
+        if not storage:
+            storage = self.storage
+        if not storage:
+            raise ValueError("No storage set.  run set_storage() to set or provide directly.  Storage must be a configured plugin.")
+        else:
+            # get the plugin
+            plugin = self.plugins.getPluginByName(self.storage)
+
+        return plugin.plugin_object.query(topic, max_depth=max_depth, dont_follow=dont_follow)
 
 
     def store_graph(self, g, storage=None):

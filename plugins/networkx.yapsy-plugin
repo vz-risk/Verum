@@ -10,7 +10,7 @@ Description = Reads a graph file into memory, stores the graph in a networkx gra
 
 [Configuration]
 Type = interface
-context_graph_file = "/tmp/verum.graphml"
+context_graph_file = /tmp/verum.graphml
 
 [Log]
 level = debug
