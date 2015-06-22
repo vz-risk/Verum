@@ -48,19 +48,6 @@ LOG = None
 import imp
 import argparse
 from datetime import datetime # timedelta imported above
-# todo: Import with IMP and don't import the titan graph functions if they don't import
-try:
-    from bulbs.titan import Graph as TITAN_Graph
-    from bulbs.titan import Config as TITAN_Config
-    from bulbs.model import Relationship as TITAN_Relationship
-    titan_import = True
-except:
-    titan_import = False
-try:
-    from py2neo import Graph as py2neoGraph
-    neo_import = True
-except:
-    neo_import = False
 try:
     from yapsy.PluginManager import PluginManager
     plugin_import = True
@@ -70,6 +57,7 @@ import ConfigParser
 import sqlite3
 import networkx as nx
 import os
+import urlparse  # For validate_url helper
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -137,20 +125,6 @@ else:
 
 
 ## EXECUTION
-#TODO: Selectively import classes based on modules that imported
-
-class TalksTo(TITAN_Relationship):
-    label = "talksto"
-
-
-class DescribedBy(TITAN_Relationship):
-    label = "describedBy"
-
-
-class Influences(TITAN_Relationship):
-    label = "influences"
-
-
 class enrich():
     titandb_config = None
     neo4j_config = None
@@ -208,7 +182,15 @@ class enrich():
                 self.enrichment_db.commit()
             elif plugin_config[0] == 'interface': # type
                 cur.execute('''INSERT INTO storage VALUES (?, ?)''', (plugin_config[2], int(plugin_config[1])))
-            print "Configured plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1])
+            elif plugin_config[0] == 'score':
+                cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[2], # Name
+                                                                               int(plugin_config[1]), # Enabled
+                                                                               plugin_config[3], # Descripton
+                                                                               plugin_config[4], # Cost
+                                                                               plugin_config[5]) # Speed 
+
+                )
+            print "Configured {2} plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1], plugin_config[0])
 
 
     def set_interface(self, interface):
@@ -245,10 +227,17 @@ class enrich():
                                           input text NOT NULL,
                                           PRIMARY KEY (name, input),
                                           FOREIGN KEY (name) REFERENCES enrichments(name));''')
-        # Create storage table
+        # Create interface table
         cur.execute('''CREATE TABLE storage (name text NOT NULL PRIMARY KEY,
                                              configured int
                                             );''')
+
+        # Create storage table
+        cur.execute('''CREATE TABLE score (name text NOT NULL PRIMARY KEY,
+                                             configured int,
+                                             description text,
+                                             cost int,
+                                             speed int);''')
         conn.commit()
 
         return conn
@@ -380,3 +369,77 @@ class enrich():
             plugin = self.plugins.getPluginByName(self.storage)
             # merge the graph
             plugin.plugin_object.enrich(g)
+
+# TODO: Move this to it's own file
+'''
+class helper():
+    def __init__(self):
+        pass
+
+    def create_topic(self,properties, prefix=""):
+        """
+
+        :param properties: A dictionary of properties
+        :param prefix: If nodes are stored with a pref
+        :return: A topic graph in networkx format with one node per property
+
+        NOTE: If multiple values of a certain type, (e.g. multiple IPs) make the value of the type
+               in the dictionary a list.
+        """
+        g = nx.DiGraph()
+
+        if type(properties) == dict:
+            iterator = properties.iteritems()
+        else:
+            iterator = iter(properties)
+
+
+        for key, value in iterator:
+            if type(value) in (list, set, np.ndarray):
+                for v in value:
+                    node_uri = "{2}class=attribute&key={0}&value={1}".format(key, v, prefix)
+                    g.add_node(node_uri, {
+                        'class': 'attribute',
+                        'key': key,
+                        'value': v,
+                        'uri': node_uri
+                    })
+            else:
+                node_uri = "{2}class=attribute&key={0}&value={1}".format(key, value, prefix)
+                g.add_node(node_uri, {
+                    'class': 'attribute',
+                    'key': key,
+                    'value': value,
+                    'uri': node_uri
+                })
+
+        return g
+
+
+    def validate_uri(uri):
+        """
+
+        :param uri: a URI string to be validated
+        :return: bool true if valid, false if not
+        """
+        # TODO: Validate the order properties are in (important for uri hash lookup)
+
+        try:
+            properties = urlparse.parse_qs(urlparse.urlparse(uri).query)
+        except:
+            return False
+        if u'key' not in properties:
+            return False
+        elif len(properties[u'key']) != 1:
+            return False
+        if u'value' not in properties:
+            return False
+        elif len(properties[u'value']) != 1:
+            return False
+        if u'attribute' not in properties:
+            return False
+        elif len(properties[u'attribute']) != 1:
+            return False
+        # Nothing failed, return true
+        return True
+'''

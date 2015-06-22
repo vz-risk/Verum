@@ -315,13 +315,13 @@ class PluginOne(IPlugin):
         return
 
 
-    def gquery(self, topic, max_depth=4, titan_conf=None, pivot_on=list(), dont_pivot_on=list(), direction='successors'):
+    def query(self, topic, max_depth=4, config=None, pivot_on=list(), dont_pivot_on=list(['enrichment', 'classification']), direction='successors'):
         """
 
-            :param og: The full graph to be operated on (nx).
             :param topic: a  graph to return the context of.  At least one node ID in topic \
              must be in full graph g to return any context.
             :param max_depth: The maximum distance from the topic to search
+            :param config: The titanDB configuration to use if not using the one configured with the plugin
             :param pivot_on: A list of attribute types to pivot on.
             :param dont_pivot_on: A list of attribute types to not pivot on.
             :param direction: The direction to transverse the graph
@@ -329,11 +329,11 @@ class PluginOne(IPlugin):
 
             NOTE: If an attribute is in both pivot_on and dont_pivot_on it will not be pivoted on
         """
-        if titan_conf is None:
-            titan_conf = self.titandb_config
+        if config is None:
+            config = self.titandb_config
 
         # Connect to TitanDB Database
-        titan_graph = TITAN_Graph(titan_conf)
+        titan_graph = TITAN_Graph(config)
 
         # Convert the topic nodes into titanDB eids
         current_nodes = set()

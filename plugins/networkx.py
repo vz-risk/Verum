@@ -131,11 +131,14 @@ class PluginOne(IPlugin):
 
     def query(self, topic, max_depth=4, config=None, dont_follow=['enrichment', 'classification']):
         """
-        :param config: The storage config (in this case a networkx graph)
-        :param topic: a networkx graph of the nodes representing the topic
-        :param max_depth:  The maximum depth to search for the subgraph. (Do not use more than 5 or 6)
-        :return:  a networkx directed multi graph.
+            :param topic: a  graph to return the context of.  At least one node ID in topic \
+             must be in full graph g to return any context.
+            :param max_depth: The maximum distance from the topic to search
+            :param config: The titanDB configuration to use if not using the one configured with the plugin
+            :param dont_follow: A list of attribute types to not follow
+            :return: subgraph in networkx format
         """
+        distances = dict()
 
         if config is None:
             config = self.context_graph
@@ -147,9 +150,18 @@ class PluginOne(IPlugin):
 
         nodes = topic_nodes.copy()
 
-        # get all nodes within max_depth distance from each topic and add them to the set
         for t in topic:
-            nodes = nodes.union(set(nx.single_source_shortest_path_length(self.context_graph.to_undirected(), t, cutoff=max_depth).keys()))
+            # get all nodes within max_depth distance from each topic and add them to the set
+            new_distances = nx.single_source_shortest_path_length(self.context_graph.to_undirected(), t, cutoff=max_depth)
+            nodes = nodes.union(set(new_distances.keys()))
+
+            # Update shortest distances from topic to node
+            for n in new_distances.keys():
+                if n in distances:
+                    if new_distances[n] < distances[n]:
+                        distances[n] = new_distances[n]
+                else:
+                    distances[n] = new_distances[n]
 
         # remove dont_follow nodes:
         nodes_to_remove = set()
@@ -166,6 +178,10 @@ class PluginOne(IPlugin):
         for component in nx.connected_components(g.to_undirected()):
             if len(topic_nodes.intersection(set(component))) <= 0:  # if there's no overlap betweent the component and topic
                 g.remove_nodes_from(component)  # remove the component
+
+        # add the topic distances to the subgraph
+        for n in g.nodes():
+            g.node[n]['topic_distance'] = distances[n]
 
         return g
 

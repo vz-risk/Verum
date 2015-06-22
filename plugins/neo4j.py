@@ -252,18 +252,20 @@ class PluginOne(IPlugin):
         tx.commit()
 
 
-    def query(self, topic, max_depth=4, neo_conf=None, dont_follow=['enrichment', 'classification']):
+    def query(self, topic, max_depth=4, config=None, dont_follow=['enrichment', 'classification']):
         """
 
-        :param neo_conf:
-        :param topic:
-        :param max_depth:
-        :return:
+            :param topic: a  graph to return the context of.  At least one node ID in topic \
+             must be in full graph g to return any context.
+            :param max_depth: The maximum distance from the topic to search
+            :param config: The titanDB configuration to use if not using the one configured with the plugin
+            :param dont_follow: A list of attribute types to not follow
+            :return: subgraph in networkx format
         """
-        if neo_conf is None:
-            neo_conf = self.neo4j_config
+        if config is None:
+            config = self.neo4j_config
 
-        neo_graph = py2neoGraph(neo_conf)
+        neo_graph = py2neoGraph(config)
         sg = nx.MultiDiGraph()
 
         # Get IDs of topic nodes in graph (if they exist).  Also add topics to subgraph
