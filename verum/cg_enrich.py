@@ -131,6 +131,7 @@ class enrich():
     storage = None  # The plugin to use for storage
     PluginFolder = None  # Folder where the plugins are
     score = None  # the plugin to use for scoring
+    classify = None  # the clasification plugin
 
     def __init__(self, PluginFolder=PluginFolder):
         #global PluginFolder
@@ -175,7 +176,6 @@ class enrich():
                                                                                plugin_config[3], # Descripton
                                                                                plugin_config[5], # Cost
                                                                                plugin_config[6]) # Speed 
-
                 )
                 for inp in plugin_config[4]: # inputs
                     # Insert into inputs table
@@ -189,9 +189,13 @@ class enrich():
                                                                                plugin_config[3], # Descripton
                                                                                plugin_config[4], # Cost
                                                                                plugin_config[5]) # Speed 
-
                 )
+
+            if plugin.name == "classify":  # Classify is a unique name.  TODO: figure out if handling multiple 'classify' plugins is necessary
+                self.classify = plugin.plugin_object
+
             print "Configured {2} plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1], plugin_config[0])
+
 
     def set_enrichment_db(self):
         """

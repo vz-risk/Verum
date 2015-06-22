@@ -130,7 +130,7 @@ if module_import_success:
                 return [plugin_type, True, NAME, "Takes a list of IPs and returns ASN and BGP information as networkx graph of the information.", inputs, cost, speed]
 
 
-        def run(self, ips, start_time = ""):
+        def run(self, ips, inputs = None, start_time = ""):
             """ From https://gist.github.com/zakird/11196064
 
             :param ips: list of IP addresses to enrich in the graph

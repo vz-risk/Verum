@@ -186,6 +186,12 @@ for domain in domains:
         pass
 # Bulk enrich IPs with Cymru
 ENRICH.store_graph(ENRICH.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
+# Classify all IPs and Domains as Malicious
+for ip in ips:
+    ENRICH.store_graph(ENRICH.classify.run(ip, "ip", "malicious"))
+for domain in domains:
+    ENRICH.store_graph(ENRICH.classify.run(domain, "domain", "malicious"))
+
 ```
 
 Now open `http://locahost:7474/` in a browser and enter the Cypher Query:

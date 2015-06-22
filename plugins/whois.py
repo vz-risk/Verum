@@ -157,7 +157,7 @@ if module_import_success:
                 self.enrich_record(record, start_time)
 
 
-        def enrich_record(self, record, start_time=""):
+        def enrich_record(self, record, inputs=None, start_time=""):
             """
 
             :param record: Takes a domain name as a list: [row,Date,Domain,Reg_name,Reg_org,Reg_addr,Reg_city,Reg_state,Reg_country,Reg_email]
