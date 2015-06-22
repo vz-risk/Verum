@@ -1,0 +1,17 @@
+[Core]
+Name = classify
+Module = classify
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a target (key:value) and classification and returns a graph linking the two.
+
+[Configuration]
+Type = enrichment
+Inputs = any
+
+[Log]
+level = debug
+# file = ./logfile.log

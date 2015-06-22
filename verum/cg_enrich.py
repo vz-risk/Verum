@@ -252,7 +252,7 @@ class enrich():
         :param cost:  integer 1-10 of resource cost of running the enrichment.  (1 = cheapest)
         :param speed: integer 1-10 speed of enrichment. (1 = fastest)
         :param enabled: Plugin is correctly configured.  If false, plugin may not run correctly.
-        :return: list of names of enrichments matching the criteria
+        :return: list of tuples of (names, type) of enrichments matching the criteria
         """
         cur = self.enrichment_db.cursor()
 
@@ -261,20 +261,19 @@ class enrich():
 
         plugins = list()
         names = list()
-        for row in cur.execute('''SELECT DISTINCT name FROM inputs WHERE input IN ({0});'''.format(("?," * len(inputs))[:-1]), inputs):
-            names.append(row[0])
-        for row in cur.execute('''SELECT DISTINCT name
-                                  FROM enrichments
-                                  WHERE cost <= ?
-                                    AND speed <= ?
-                                    AND configured = ?
-                                    AND name IN ({0});'''.format(("?," * len(names))[:-1]),
+        for row in cur.execute("""  SELECT DISTINCT e.name, i.input
+                                    FROM enrichments e, inputs i
+                                    WHERE e.name = i.name
+                                      AND e.cost <= ?
+                                      AND e.speed <= ?
+                                      AND configured = ?
+                                      AND i.input IN ({0})""".format(("?," * len(inputs))[:-1]),
                                 [cost,
                                  speed,
-                                 int(configured)] + 
-                                 names
+                                 int(configured)] +
+                                 inputs
                                ):
-            plugins.append(row[0])
+            plugins.append(tuple(row))
 
         return plugins
 
