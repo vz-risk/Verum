@@ -126,12 +126,11 @@ else:
 
 ## EXECUTION
 class enrich():
-    titandb_config = None
-    neo4j_config = None
-    enrichment_db = None
-    plugins = None
-    storage = None
-    PluginFolder = None
+    enrichment_db = None  # the sqlite database of plugins
+    plugins = None  # Configured plugins
+    storage = None  # The plugin to use for storage
+    PluginFolder = None  # Folder where the plugins are
+    score = None  # the plugin to use for scoring
 
     def __init__(self, PluginFolder=PluginFolder):
         #global PluginFolder
@@ -146,6 +145,8 @@ class enrich():
         else:
             logging.warning("Plugin folder not doesn't exist.  Plugins not configured.  Please run set_plugin_folder(<PluginFolder>) to set the plugin folder and then load_plugins() to load plugins.")
 
+
+    ## PLUGIN FUNCTIONS
 
     def set_plugin_folder(self, PluginFolder):
         self.PluginFolder = PluginFolder
@@ -183,7 +184,7 @@ class enrich():
             elif plugin_config[0] == 'interface': # type
                 cur.execute('''INSERT INTO storage VALUES (?, ?)''', (plugin_config[2], int(plugin_config[1])))
             elif plugin_config[0] == 'score':
-                cur.execute('''INSERT INTO enrichments VALUES (?, ?, ?, ?, ?)''', (plugin_config[2], # Name
+                cur.execute('''INSERT INTO score VALUES (?, ?, ?, ?, ?)''', (plugin_config[2], # Name
                                                                                int(plugin_config[1]), # Enabled
                                                                                plugin_config[3], # Descripton
                                                                                plugin_config[4], # Cost
@@ -191,23 +192,6 @@ class enrich():
 
                 )
             print "Configured {2} plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1], plugin_config[0])
-
-
-    def set_interface(self, interface):
-        """
-
-        :param interface: The name of the plugin to use for storage.
-        Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
-        """
-        cur = self.enrichment_db.cursor()
-        configured_storage = list()
-        for row in cur.execute('''SELECT DISTINCT name FROM storage WHERE configured=1;'''):
-            configured_storage.append(row[0])
-        if interface in configured_storage:
-            self.storage = interface
-        else:
-            configured_storage = None
-            raise ValueError("Requested interface {0} not configured. Options are {1}.".format(interface, configured_storage))
 
     def set_enrichment_db(self):
         """
@@ -242,6 +226,8 @@ class enrich():
 
         return conn
 
+
+    ## ENRICHMENT FUNCTIONS
 
     def get_inputs(self):
         """ NoneType -> list of strings
@@ -289,23 +275,6 @@ class enrich():
         return plugins
 
 
-    def get_interfaces(self, configured=None):
-        """
-
-        :return: list of strings of names of interface plugins
-        """
-        cur = self.enrichment_db.cursor()
-        interfaces = list()
-
-        if configured is None:
-            for row in cur.execute('''SELECT DISTINCT name FROM storage;'''):
-                interfaces.append(row[0])
-        else:
-             for row in cur.execute('''SELECT DISTINCT name from storage WHERE configured=?;''', (int(configured),)):
-                interfaces.append(row[0])           
-        return interfaces
-
-
     def run_enrichments(self, topic, topic_type, names=None, cost=10, speed=10, start_time=""):
         """
 
@@ -336,6 +305,43 @@ class enrich():
                 g.add_edge(edge[0], edge[1], attr_dict=edge[2])
 
         return g
+
+
+    ## INTERFACE FUNCTIONS
+
+    def get_interfaces(self, configured=None):
+        """
+
+        :return: list of strings of names of interface plugins
+        """
+        cur = self.enrichment_db.cursor()
+        interfaces = list()
+
+        if configured is None:
+            for row in cur.execute('''SELECT DISTINCT name FROM storage;'''):
+                interfaces.append(row[0])
+        else:
+             for row in cur.execute('''SELECT DISTINCT name from storage WHERE configured=?;''', (int(configured),)):
+                interfaces.append(row[0])           
+        return interfaces
+
+    def get_default_interface(self):
+        return self.storage
+
+    def set_interface(self, interface):
+        """
+
+        :param interface: The name of the plugin to use for storage.
+        Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
+        """
+        cur = self.enrichment_db.cursor()
+        configured_storage = list()
+        for row in cur.execute('''SELECT DISTINCT name FROM storage WHERE configured=1;'''):
+            configured_storage.append(row[0])
+        if interface in configured_storage:
+            self.storage = interface
+        else:
+            raise ValueError("Requested interface {0} not configured. Options are {1}.".format(interface, configured_storage))
 
 
     def run_query(self, topic, max_depth=4, dont_follow=['enrichment', 'classification'], storage=None):
@@ -369,6 +375,77 @@ class enrich():
             plugin = self.plugins.getPluginByName(self.storage)
             # merge the graph
             plugin.plugin_object.enrich(g)
+
+
+    ## SCORE FUNCTIONS
+
+    def get_scoring_plugins(self, cost=10000, speed=10000, names=None, configured=True):
+        """
+
+        :param cost:  integer 1-10 of resource cost of running the enrichment.  (1 = cheapest)
+        :param speed: integer 1-10 speed of enrichment. (1 = fastest)
+        :param enabled: Plugin is correctly configured.  If false, plugin may not run correctly.
+        :return: list of names of scoring plugins matching the criteria
+        """
+        cur = self.enrichment_db.cursor()
+
+        plugins = list()
+
+        if names is None:
+            for row in cur.execute('''SELECT DISTINCT name
+                                      FROM score
+                                      WHERE cost <= ?
+                                        AND speed <= ?
+                                        AND configured = ?''',
+                                    [cost,
+                                     speed,
+                                     int(configured)]
+                                   ):
+                plugins.append(row[0])
+        else:
+            for row in cur.execute('''SELECT DISTINCT name
+                                      FROM score
+                                      WHERE cost <= ?
+                                        AND speed <= ?
+                                        AND configured = ?
+                                        AND name IN ({0});'''.format(("?," * len(names))[:-1]),
+                                    [cost,
+                                     speed,
+                                     int(configured)] + 
+                                     names
+                                   ):
+                plugins.append(row[0])
+
+        return plugins
+
+
+    def score_subgraph(self, topic, sg, plugin_name=None):
+        if plugin_name is None:
+            plugin_name=self.score
+
+        score_plugin = self.plugins.getPluginByName(plugin_name)
+        return score_plugin.plugin_object.score(sg, topic)
+
+
+    def set_scoring_plugin(self, plugin):
+        """
+
+        :param interface: The name of the plugin to use for storage.
+        Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
+        """
+        cur = self.enrichment_db.cursor()
+        configured_scoring_plugins = list()
+        for row in cur.execute('''SELECT DISTINCT name FROM score WHERE configured=1;'''):
+            configured_scoring_plugins.append(row[0])
+        if plugin in configured_scoring_plugins:
+            self.score = plugin
+        else:
+            raise ValueError("Requested scoring plugin {0} is not configured. Options are {1}.".format(plugin, configured_scoring_plugins))
+
+
+    def get_default_scoring_plugin(self):
+        return self.score
+
 
 # TODO: Move this to it's own file
 '''

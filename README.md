@@ -207,11 +207,17 @@ Now that we have built an enriched context graph, we can query it.
 
 ```
 #TODO: Find out if < '117.18.73.98',> is malicious
+# Create a topic to score
 topic = VERUM.cg_query.create_topic({"ip": '117.18.73.98'})
+# Retrieve the subgraph associated with it
 sg = ENRICH.run_query(topic)
-score_plugin = ENRICH.plugins.getPluginByName("PageRank2")
-scores = score_plugin.plugin_object.score(sg, topic)
-
+# List out configured scoring plugins available.
+ENRICH.get_scoring_plugins()
+# Set the default scoring plugin
+ENRICH.set_scoring_plugin('PageRank2')
+# Check to ensure it was set
+ENRICH.get_default_scoring_plugin()
+print ENRICH.score_subgraph(topic, sg)
 ```
 
 

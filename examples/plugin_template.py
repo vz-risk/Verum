@@ -88,7 +88,7 @@ if module_import_success:
         #  TODO: Current  layout is for an enrichment plugin
         #  TODO: enrichment [type, successful_load, name, description, inputs to enrichment such as 'ip', cost, speed]
         #  TODO: interface [type, successful_load, name]
-        #  TODO: query [TBD]
+        #  TODO: score [TBD]
         #  TODO: minion [TBD]
         def configure(self):
             """
@@ -127,9 +127,10 @@ if module_import_success:
 
 
         #  TODO: The correct type of execution function must be defined for the type of plugin
-        #  TODO: enrichment: "run(self, <thing to enrich>, start_time, any specific attributes.  MUST HAVE DEFAULTS)
-        #  TODO: interface: enrich(self, graph)
-        #  TODO: query [TBD]
+        #  TODO: enrichment: "run(<thing to enrich>, start_time, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+        #  TODO: interface: enrich(graph, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+        #  TODO:            query(topic, max_depth, config, dont_follow, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+        #  TODO: score: score(subgraph, topic, any other plugin-specific attributes-MUST HAVE DEFAULTS)
         #  TODO: minion [TBD] 
         #  TODO: Enrichment plugin specifics:
         #  -     Created nodes/edges must follow http://blog.infosecanalytics.com/2014/11/cyber-attack-graph-schema-cags-20.html
@@ -147,7 +148,16 @@ if module_import_success:
         #  -     Edges should be added w/o attempts to merge with edges in the storage back end
         #  -     When adding nodes it is highly recommended to keep a node-to-storage-id mapping with a key of the node
         #  -       URI.  This will assist in bulk-adding the edges.
-
+        #  -     Query specifics of interface plugins:
+        #  -     In the most efficient way possible retrieve and return the merged subgraph (as a networkx graph) including all nodes and 
+        #  -     edges within the max_distance from any node in the topic graph from the storage backend graph.
+        #  -     As a default, ['enrichment', 'classification'] should not be followed.
+        #  -     The query function must add a 'topic_distance' property to all nodes.
+        #  TODO: Score plugin specifics:
+        #  -     Scoring plugins should take a topic and networkx (sub)graph and return a dictionary keyed with the node (name) and with
+        #  -     values of the score assigned to the node for the given topic.
+        #  TODO: Minion plugin specifics:
+        #  -     [TBD]
         def run(self, domain, start_time="", include_subdomain=False):
             """
 
