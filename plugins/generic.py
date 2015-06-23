@@ -36,8 +36,8 @@ pass
 
 
 # USER VARIABLES
-PLUGIN_CONFIG_FILE = "classify.yapsy-plugin"
-NAME = "classify"
+PLUGIN_CONFIG_FILE = "generic.yapsy-plugin"
+NAME = "generic"
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -84,6 +84,7 @@ class PluginOne(IPlugin):
     def __init__(self):
         pass
 
+
     def configure(self):
         """
 
@@ -122,7 +123,7 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, description, self.inputs, cost, speed]
 
 
-    def run(self, value, key, classification, start_time="", confidence=1):
+    def run(self, described_value, described_key, describing_value, describing_key, start_time="", confidence=1):
         """
 
         :param domain: a string containing a domain to look up
@@ -142,23 +143,23 @@ class PluginOne(IPlugin):
             time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Get or create target node
-        target_uri = "class=attribute&key={0}&value={1}".format(key, value)
-        g.add_node(target_uri, {
+        described_uri = "class=attribute&key={0}&value={1}".format(described_key, described_value)
+        g.add_node(described_uri, {
             'class': 'attribute',
-            'key': key,
-            "value": value,
+            'key': described_key,
+            "value": described_value,
             "start_time": time,
-            "uri": target_uri
+            "uri": described_uri
         })
 
         # Get or create classification node
-        classification_uri = "class=attribute&key={0}&value={1}".format("classification", classification)
-        g.add_node(classification_uri, {
+        describing_uri = "class=attribute&key={0}&value={1}".format(describing_key, describing_value)
+        g.add_node(describing_uri , {
             'class': 'attribute',
-            'key': "classification",
-            "value": classification,
+            'key': describing_key,
+            "value": describing_value,
             "start_time": time,
-            "uri": classification_uri
+            "uri": describing_uri 
         })
 
 
@@ -166,11 +167,11 @@ class PluginOne(IPlugin):
         edge_attr = {
             "relationship": "describedBy",
             "start_time": time,
-            "origin": "classification",
+            "origin": "generic",
             "confidence": confidence
         }
-        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, target_uri)
-        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, classification_uri)
+        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, described_uri)
+        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, describing_uri )
         edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
         rel_chain = "relationship"
         while rel_chain in edge_attr:
@@ -179,6 +180,6 @@ class PluginOne(IPlugin):
         if "origin" in edge_attr:
             edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
         edge_attr["uri"] = edge_uri
-        g.add_edge(target_uri, classification_uri, edge_uri, edge_attr)
+        g.add_edge(described_uri, describing_uri , edge_uri, edge_attr)
 
         return g

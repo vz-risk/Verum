@@ -1,0 +1,17 @@
+[Core]
+Name = generic
+Module = generic
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a described (key:value) and describing (key:value) and returns a graph linking the two.
+
+[Configuration]
+Type = enrichment
+Inputs = any
+
+[Log]
+level = debug
+# file = ./logfile.log
