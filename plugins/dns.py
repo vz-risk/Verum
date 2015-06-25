@@ -99,7 +99,7 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, "Takes an IP string and returns the DNS resolved IP address as networkx graph.", inputs, cost, speed]
 
 
-    def run(self, domain, inputs=None, start_time=""):
+    def run(self, domain, start_time=""):
         """
 
         :param domain: a string containing a domain to lookup up

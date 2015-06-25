@@ -135,7 +135,7 @@ if module_import_success:
                 return [plugin_type, True, NAME, "Takes an IP and returns the ASN of the IP.", inputs, cost, speed]
 
 
-        def run(self, ip, inputs=None, start_time=""):
+        def run(self, ip, start_time=""):
             """
 
             :param ip: IP address to enrich in graph

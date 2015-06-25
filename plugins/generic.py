@@ -123,13 +123,18 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, description, self.inputs, cost, speed]
 
 
-    def run(self, described_value, described_key, describing_value, describing_key, start_time="", confidence=1):
+    def run(self, enrichment_dict, start_time="", confidence=1):
         """
 
-        :param domain: a string containing a domain to look up
+        :param enrichment_dict: a dictionary of the form {'key': <key of atomic to describe>, 'value':<value of atomic to describe>, 'describing_key':<key of describing atomic>, 'describing_value':<value of describing atomic>}
         :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
         :return: a networkx graph representing the sections of the domain
         """
+        described_key = enrichment_dict['key']
+        described_value = enrichment_dict['value']
+        describing_key = enrichment_dict['describing_key']
+        describing_value = enrichment_dict['describing_value']
+
         g = nx.MultiDiGraph()
 
         if type(start_time) is str:

@@ -122,13 +122,17 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, description, self.inputs, cost, speed]
 
 
-    def run(self, value, key, classification, start_time="", confidence=1):
+    def run(self, enrichment_dict, start_time="", confidence=1):
         """
 
-        :param domain: a string containing a domain to look up
+        :param enrichment_dict: a dictionary of the form {'key': <key of atomic to classify>, 'value':<value of atomic to classify>, 'classification':<classification of atomic>}
         :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
         :return: a networkx graph representing the sections of the domain
         """
+        key = enrichment_dict['key']
+        value = enrichment_dict['value']
+        classification = enrichment_dict['classification']
+
         g = nx.MultiDiGraph()
 
         if type(start_time) is str:

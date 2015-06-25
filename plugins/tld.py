@@ -112,7 +112,7 @@ if module_import_success:
                 return [plugin_type, True, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
 
 
-        def run(self, domain, inputs=None, start_time="", include_subdomain=False):
+        def run(self, domain, start_time="", include_subdomain=False):
             """
 
             :param domain: a string containing a domain to look up
