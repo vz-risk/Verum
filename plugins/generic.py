@@ -48,6 +48,7 @@ from yapsy.IPlugin import IPlugin
 import logging
 import networkx as nx
 from datetime import datetime # timedelta imported above
+import dateutil  # to parse variable time strings
 import uuid
 import ConfigParser
 import inspect
@@ -124,9 +125,10 @@ class PluginOne(IPlugin):
 
 
     def run(self, enrichment_dict, start_time="", confidence=1):
-        """
+        """ dict, str -> networkx multiDiGraph
 
         :param enrichment_dict: a dictionary of the form {'key': <key of atomic to describe>, 'value':<value of atomic to describe>, 'describing_key':<key of describing atomic>, 'describing_value':<value of describing atomic>}
+        :param start_time: string in ISO 8601 combined date and time format (e.g. 2014-11-01T10:34Z) or datetime object.
         :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
         :return: a networkx graph representing the sections of the domain
         """
@@ -139,7 +141,7 @@ class PluginOne(IPlugin):
 
         if type(start_time) is str:
             try:
-                time = datetime.strptime("%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%dT%H:%M:%SZ")
+                time = dateutil.parser.parse(start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
             except:
                 time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         elif type(start_time) is datetime:

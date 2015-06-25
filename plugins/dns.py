@@ -44,6 +44,7 @@ NAME = "DNS Enrichment"
 from yapsy.IPlugin import IPlugin
 import networkx as nx
 from datetime import datetime
+import dateutil  # to parse variable time strings
 import socket
 import uuid
 import ConfigParser
@@ -100,13 +101,25 @@ class PluginOne(IPlugin):
 
 
     def run(self, domain, start_time=""):
-        """
+        """ str, str -> networkx multiDiGraph
 
         :param domain: a string containing a domain to lookup up
+        :param start_time: string in ISO 8601 combined date and time format (e.g. 2014-11-01T10:34Z) or datetime object.
         :return: a networkx graph representing the response.
         """
+
+        # Parse the start_time
+        if type(start_time) is str:
+            try:
+                time = dateutil.parser.parse(start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+            except:
+                time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        elif type(start_time) is datetime:
+            time = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
         ip = socket.gethostbyname(domain)
-        now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         g = nx.MultiDiGraph()
 
         # Get or create Domain node
@@ -115,7 +128,7 @@ class PluginOne(IPlugin):
             'class': 'attribute',
             'key': "domain",
             "value": domain,
-            "start_time": now,  # graphml does not support 'none'
+            "start_time": time,
             "uri": domain_uri
         })
 
@@ -125,7 +138,7 @@ class PluginOne(IPlugin):
             'class': 'attribute',
             'key': "enrichment",
             "value": "dns",
-            "start_time": now,
+            "start_time": time,
             "uri": dns_uri
         })
 
@@ -134,14 +147,14 @@ class PluginOne(IPlugin):
             'class': 'attribute',
             'key': "ip",
             "value": ip,
-            "start_time": now,
+            "start_time": time,
             "uri": ip_uri
         })
 
         # Create edge from domain to ip node
         edge_attr = {
             "relationship": "describedBy",
-            "start_time": now,
+            "start_time": time,
             "origin": "dns"
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
@@ -154,12 +167,12 @@ class PluginOne(IPlugin):
         if "origin" in edge_attr:
             edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
         edge_attr["uri"] = edge_uri
-        g.add_edge(domain_uri, ip_uri, edge_uri, {"start_time": now})
+        g.add_edge(domain_uri, ip_uri, edge_uri, {"start_time": time})
 
         # Link domain to enrichment
         edge_attr = {
             "relationship": "describedBy",
-            "start_time": now,
+            "start_time": time,
             "origin": "dns"
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)

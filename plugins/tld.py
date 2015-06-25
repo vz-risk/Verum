@@ -46,6 +46,7 @@ from yapsy.IPlugin import IPlugin
 import logging
 import networkx as nx
 from datetime import datetime # timedelta imported above
+import dateutil  # to parse variable time strings
 import uuid
 import ConfigParser
 import inspect
@@ -71,128 +72,169 @@ if config.has_section('Core'):
         NAME = config.get('Core', 'name')
 
 ## EXECUTION
-if module_import_success:
-    class PluginOne(IPlugin):
-        def __init__(self):
-            pass
+class PluginOne(IPlugin):
+    def __init__(self):
+        pass
 
-        def configure(self):
-            """
+    def configure(self):
+        """
 
-            :return: return list of [configure success (bool), name, description, list of acceptable inputs, resource cost (1-10, 1=low), speed (1-10, 1=fast)]
-            """
-            config_options = config.options("Configuration")
+        :return: return list of [configure success (bool), name, description, list of acceptable inputs, resource cost (1-10, 1=low), speed (1-10, 1=fast)]
+        """
+        config_options = config.options("Configuration")
 
-            if 'cost' in config_options:
-                cost = config.get('Configuration', 'cost')
-            else:
-                cost = 9999
-            if 'speed' in config_options:
-                speed = config.get('Configuration', 'speed')
-            else:
-                speed = 9999
+        if 'cost' in config_options:
+            cost = config.get('Configuration', 'cost')
+        else:
+            cost = 9999
+        if 'speed' in config_options:
+            speed = config.get('Configuration', 'speed')
+        else:
+            speed = 9999
 
-            if 'type' in config_options:
-                plugin_type = config.get('Configuration', 'Type')
-            else:
-                logging.error("'Type' not specified in config file.")
-                return [None, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
+        if 'type' in config_options:
+            plugin_type = config.get('Configuration', 'Type')
+        else:
+            logging.error("'Type' not specified in config file.")
+            return [None, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
-            if 'inputs' in config_options:
-                inputs = config.get('Configuration', 'Inputs')
-                inputs = [l.strip().lower() for l in inputs.split(",")]
-            else:
-                logging.error("No input types specified in config file.")
-                return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
+        if 'inputs' in config_options:
+            inputs = config.get('Configuration', 'Inputs')
+            inputs = [l.strip().lower() for l in inputs.split(",")]
+        else:
+            logging.error("No input types specified in config file.")
+            return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", None, cost, speed]
 
-            if not module_import_success:
-                logging.error("Module import failure caused configuration failure.")
-                return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
-            else:
-                return [plugin_type, True, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+        if not module_import_success:
+            logging.error("Module import failure caused configuration failure.")
+            return [plugin_type, False, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
+        else:
+            return [plugin_type, True, NAME, "Takes a domain name and returns the top level domain, mid-domain, and sub-domain as networkx graph.", inputs, cost, speed]
 
 
-        def run(self, domain, start_time="", include_subdomain=False):
-            """
+    def run(self, domain, start_time="", include_subdomain=False):
+        """ str, str -> networkx multiDiGraph
 
-            :param domain: a string containing a domain to look up
-            :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
-            :return: a networkx graph representing the sections of the domain
-            """
+        :param domain: a string containing a domain to look up
+        :param start_time: string in ISO 8601 combined date and time format (e.g. 2014-11-01T10:34Z) or datetime object.
+        :param include_subdomain: Boolean value.  Default False.  If true, subdomain will be returned in enrichment graph
+        :return: a networkx graph representing the sections of the domain
+        """
+        # Parse the start_time
+        if type(start_time) is str:
+            try:
+                time = dateutil.parser.parse(start_time).strftime("%Y-%m-%dT%H:%M:%SZ")
+            except:
+                time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        elif type(start_time) is datetime:
+            time = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
             ext = tldextract.extract(domain)
-            now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             g = nx.MultiDiGraph()
 
-            # Get or create Domain node
-            domain_uri = "class=attribute&key={0}&value={1}".format("domain", domain)
-            g.add_node(domain_uri, {
-                'class': 'attribute',
-                'key': "domain",
-                "value": domain,
-                "start_time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),  # graphml does not support 'none'
-                "uri": domain_uri
-            })
+        # Get or create Domain node
+        domain_uri = "class=attribute&key={0}&value={1}".format("domain", domain)
+        g.add_node(domain_uri, {
+            'class': 'attribute',
+            'key': "domain",
+            "value": domain,
+            "start_time": time,
+            "uri": domain_uri
+        })
 
-            # Get or create Enrichment node
-            tld_extract_uri = "class=attribute&key={0}&value={1}".format("enrichment", "tld_extract")
-            g.add_node(tld_extract_uri, {
-                'class': 'attribute',
-                'key': "enrichment",
-                "value": "tld_extract",
-                "start_time": now,
-                "uri": tld_extract_uri
-            })
+        # Get or create Enrichment node
+        tld_extract_uri = "class=attribute&key={0}&value={1}".format("enrichment", "tld_extract")
+        g.add_node(tld_extract_uri, {
+            'class': 'attribute',
+            'key': "enrichment",
+            "value": "tld_extract",
+            "start_time": time,
+            "uri": tld_extract_uri
+        })
 
-            # Get or create TLD node
-            tld_uri = "class=attribute&key={0}&value={1}".format("domain", ext.suffix)
-            g.add_node(tld_uri, {
-                'class': 'attribute',
-                'key': "domain",
-                "value": ext.suffix,
-                "start_time": now,
-                "uri": tld_uri
-            })
+        # Get or create TLD node
+        tld_uri = "class=attribute&key={0}&value={1}".format("domain", ext.suffix)
+        g.add_node(tld_uri, {
+            'class': 'attribute',
+            'key': "domain",
+            "value": ext.suffix,
+            "start_time": time,
+            "uri": tld_uri
+        })
 
-            # Link domain to tld
-            edge_attr = {
-                "relationship": "describedBy",
-                "start_time": now,
-                "origin": "tld_extract",
-                "describedBy":"suffix"
-            }
-            source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
-            dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_uri)
-            edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
-            rel_chain = "relationship"
-            while rel_chain in edge_attr:
-                edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
-                rel_chain = edge_attr[rel_chain]
-            if "origin" in edge_attr:
-                edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
-            edge_attr["uri"] = edge_uri
-            g.add_edge(domain_uri, tld_uri, edge_uri, edge_attr)
+        # Link domain to tld
+        edge_attr = {
+            "relationship": "describedBy",
+            "start_time": time,
+            "origin": "tld_extract",
+            "describedBy":"suffix"
+        }
+        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_uri)
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        rel_chain = "relationship"
+        while rel_chain in edge_attr:
+            edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+            rel_chain = edge_attr[rel_chain]
+        if "origin" in edge_attr:
+            edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+        edge_attr["uri"] = edge_uri
+        g.add_edge(domain_uri, tld_uri, edge_uri, edge_attr)
 
 
+        # Get or create mid domain node
+        mid_domain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.domain)
+        g.add_node(mid_domain_uri, {
+            'class': 'attribute',
+            'key': "domain",
+            "value": ext.domain,
+            "start_time": time,
+            "uri": mid_domain_uri
+        })
+
+        # Link domain to mid_domain
+        edge_attr = {
+            "relationship": "describedBy",
+            "start_time": time,
+            "origin": "tld_extract",
+            "describedBy":"domain"
+        }
+        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, mid_domain_uri)
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        rel_chain = "relationship"
+        while rel_chain in edge_attr:
+            edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+            rel_chain = edge_attr[rel_chain]
+        if "origin" in edge_attr:
+            edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+        edge_attr["uri"] = edge_uri
+        g.add_edge(domain_uri, mid_domain_uri, edge_uri, edge_attr)
+
+
+        # if including subdomains, create subdomain and node
+        if include_subdomain:
             # Get or create mid domain node
-            mid_domain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.domain)
-            g.add_node(mid_domain_uri, {
+            subdomain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.subdomain)
+            g.add_node(subdomain_uri, {
                 'class': 'attribute',
                 'key': "domain",
                 "value": ext.domain,
-                "start_time": now,
-                "uri": mid_domain_uri
+                "start_time": time,
+                "uri": subdomain_uri
             })
 
             # Link domain to mid_domain
             edge_attr = {
                 "relationship": "describedBy",
-                "start_time": now,
+                "start_time": time,
                 "origin": "tld_extract",
-                "describedBy":"domain"
+                "describedBy":"subdomain"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
-            dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, mid_domain_uri)
+            dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, subdomain_uri)
             edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
             rel_chain = "relationship"
             while rel_chain in edge_attr:
@@ -201,56 +243,24 @@ if module_import_success:
             if "origin" in edge_attr:
                 edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
             edge_attr["uri"] = edge_uri
-            g.add_edge(domain_uri, mid_domain_uri, edge_uri, edge_attr)
+            g.add_edge(domain_uri, subdomain_uri, edge_uri, edge_attr)
 
+        # Link domain to enrichment
+        edge_attr = {
+            "relationship": "describedBy",
+            "start_time": time,
+            "origin": "tld_extract"
+        }
+        source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+        dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_extract_uri)
+        edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+        rel_chain = "relationship"
+        while rel_chain in edge_attr:
+            edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+            rel_chain = edge_attr[rel_chain]
+        if "origin" in edge_attr:
+            edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+        edge_attr["uri"] = edge_uri
+        g.add_edge(domain_uri, tld_extract_uri, edge_uri, edge_attr)
 
-            # if including subdomains, create subdomain and node
-            if include_subdomain:
-                # Get or create mid domain node
-                subdomain_uri = "class=attribute&key={0}&value={1}".format("domain", ext.subdomain)
-                g.add_node(subdomain_uri, {
-                    'class': 'attribute',
-                    'key': "domain",
-                    "value": ext.domain,
-                    "start_time": now,
-                    "uri": subdomain_uri
-                })
-
-                # Link domain to mid_domain
-                edge_attr = {
-                    "relationship": "describedBy",
-                    "start_time": now,
-                    "origin": "tld_extract",
-                    "describedBy":"subdomain"
-                }
-                source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
-                dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, subdomain_uri)
-                edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
-                rel_chain = "relationship"
-                while rel_chain in edge_attr:
-                    edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
-                    rel_chain = edge_attr[rel_chain]
-                if "origin" in edge_attr:
-                    edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
-                edge_attr["uri"] = edge_uri
-                g.add_edge(domain_uri, subdomain_uri, edge_uri, edge_attr)
-
-            # Link domain to enrichment
-            edge_attr = {
-                "relationship": "describedBy",
-                "start_time": now,
-                "origin": "tld_extract"
-            }
-            source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
-            dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, tld_extract_uri)
-            edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
-            rel_chain = "relationship"
-            while rel_chain in edge_attr:
-                edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
-                rel_chain = edge_attr[rel_chain]
-            if "origin" in edge_attr:
-                edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
-            edge_attr["uri"] = edge_uri
-            g.add_edge(domain_uri, tld_extract_uri, edge_uri, edge_attr)
-
-            return g
+        return g
