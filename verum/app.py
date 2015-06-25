@@ -125,8 +125,8 @@ else:
 
 
 ## EXECUTION
-class enrich():
-    enrichment_db = None  # the sqlite database of plugins
+class app():
+    db = None  # the sqlite database of plugins
     plugins = None  # Configured plugins
     storage = None  # The plugin to use for storage
     PluginFolder = None  # Folder where the plugins are
@@ -138,7 +138,7 @@ class enrich():
         self.PluginFolder = PluginFolder
 
         # Load enrichments database
-        self.enrichment_db = self.set_enrichment_db()
+        self.db = self.set_db()
 
         # Load the plugins Directory
         if self.PluginFolder:
@@ -166,7 +166,15 @@ class enrich():
         print "Plugin manager configured."
 
         # Loop round the plugins and print their names.
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
+
+        # Clear tables
+        cur.execute("""DELETE FROM enrichments""")
+        cur.execute("""DELETE FROM inputs""")
+        cur.execute("""DELETE FROM storage""")
+        cur.execute("""DELETE FROM score""")
+
+
         for plugin in self.plugins.getAllPlugins():
             plugin_config = plugin.plugin_object.configure()
             # Insert enrichment
@@ -180,7 +188,7 @@ class enrich():
                 for inp in plugin_config[4]: # inputs
                     # Insert into inputs table
                     cur.execute('''INSERT INTO inputs VALUES (?,?)''', (plugin_config[2], inp))
-                self.enrichment_db.commit()
+                self.db.commit()
             elif plugin_config[0] == 'interface': # type
                 cur.execute('''INSERT INTO storage VALUES (?, ?)''', (plugin_config[2], int(plugin_config[1])))
             elif plugin_config[0] == 'score':
@@ -197,7 +205,7 @@ class enrich():
             print "Configured {2} plugin {0}.  Success: {1}".format(plugin.name, plugin_config[1], plugin_config[0])
 
 
-    def set_enrichment_db(self):
+    def set_db(self):
         """
 
         Sets up the enrichment sqlite in memory database
@@ -239,7 +247,7 @@ class enrich():
         :return: A list of the potential enrichment inputs (ip, domain, etc)
         """
         inputs = list()
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
         for row in cur.execute('''SELECT DISTINCT input FROM inputs;'''):
             inputs.append(row[0])
         return inputs
@@ -254,7 +262,7 @@ class enrich():
         :param enabled: Plugin is correctly configured.  If false, plugin may not run correctly.
         :return: list of tuples of (names, type) of enrichments matching the criteria
         """
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
 
         if type(inputs) == str:
             inputs = [inputs]
@@ -289,6 +297,7 @@ class enrich():
         :return: None if storage configured (networkx graph representing the enrichment of the topic
         """
         enrichments = self.get_enrichments([topic_type], cost, speed, configured=True)
+        enrichments = [e[0] for e in enrichments]
         #print enrichments  # DEBUG
         g = nx.MultiDiGraph()
 
@@ -317,7 +326,7 @@ class enrich():
 
         :return: list of strings of names of interface plugins
         """
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
         interfaces = list()
 
         if configured is None:
@@ -337,7 +346,7 @@ class enrich():
         :param interface: The name of the plugin to use for storage.
         Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
         """
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
         configured_storage = list()
         for row in cur.execute('''SELECT DISTINCT name FROM storage WHERE configured=1;'''):
             configured_storage.append(row[0])
@@ -390,7 +399,7 @@ class enrich():
         :param enabled: Plugin is correctly configured.  If false, plugin may not run correctly.
         :return: list of names of scoring plugins matching the criteria
         """
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
 
         plugins = list()
 
@@ -436,7 +445,7 @@ class enrich():
         :param interface: The name of the plugin to use for storage.
         Sets the storage backend to use.  It must have been configured through a plugin prior to setting.
         """
-        cur = self.enrichment_db.cursor()
+        cur = self.db.cursor()
         configured_scoring_plugins = list()
         for row in cur.execute('''SELECT DISTINCT name FROM score WHERE configured=1;'''):
             configured_scoring_plugins.append(row[0])
@@ -448,78 +457,3 @@ class enrich():
 
     def get_default_scoring_plugin(self):
         return self.score
-
-
-# TODO: Move this to it's own file
-'''
-class helper():
-    def __init__(self):
-        pass
-
-    def create_topic(self,properties, prefix=""):
-        """
-
-        :param properties: A dictionary of properties
-        :param prefix: If nodes are stored with a pref
-        :return: A topic graph in networkx format with one node per property
-
-        NOTE: If multiple values of a certain type, (e.g. multiple IPs) make the value of the type
-               in the dictionary a list.
-        """
-        g = nx.DiGraph()
-
-        if type(properties) == dict:
-            iterator = properties.iteritems()
-        else:
-            iterator = iter(properties)
-
-
-        for key, value in iterator:
-            if type(value) in (list, set, np.ndarray):
-                for v in value:
-                    node_uri = "{2}class=attribute&key={0}&value={1}".format(key, v, prefix)
-                    g.add_node(node_uri, {
-                        'class': 'attribute',
-                        'key': key,
-                        'value': v,
-                        'uri': node_uri
-                    })
-            else:
-                node_uri = "{2}class=attribute&key={0}&value={1}".format(key, value, prefix)
-                g.add_node(node_uri, {
-                    'class': 'attribute',
-                    'key': key,
-                    'value': value,
-                    'uri': node_uri
-                })
-
-        return g
-
-
-    def validate_uri(uri):
-        """
-
-        :param uri: a URI string to be validated
-        :return: bool true if valid, false if not
-        """
-        # TODO: Validate the order properties are in (important for uri hash lookup)
-
-        try:
-            properties = urlparse.parse_qs(urlparse.urlparse(uri).query)
-        except:
-            return False
-        if u'key' not in properties:
-            return False
-        elif len(properties[u'key']) != 1:
-            return False
-        if u'value' not in properties:
-            return False
-        elif len(properties[u'value']) != 1:
-            return False
-        if u'attribute' not in properties:
-            return False
-        elif len(properties[u'attribute']) != 1:
-            return False
-        # Nothing failed, return true
-        return True
-'''

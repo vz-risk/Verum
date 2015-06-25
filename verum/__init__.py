@@ -23,11 +23,9 @@ under the License.
 '''
 
 
-__all__ = [ 'cg_present',
-            'cg_query',
-            'cg_enrich'
+__all__ = [ 'app',
+            'helper'
           ]
 # Import the packages
-from cg_enrich import enrich
-import cg_present
-import cg_query
+from app import app
+from helper import *

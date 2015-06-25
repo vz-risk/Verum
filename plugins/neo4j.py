@@ -252,7 +252,7 @@ class PluginOne(IPlugin):
         tx.commit()
 
 
-    def query(self, topic, max_depth=4, config=None, dont_follow=['enrichment', 'classification']):
+    def query(self, topic, max_depth=4, dont_follow=['enrichment', 'classification'], config=None):
         """
 
             :param topic: a  graph to return the context of.  At least one node ID in topic \
@@ -275,14 +275,15 @@ class PluginOne(IPlugin):
                       "RETURN collect(topic) as topics").format(data['class'], "{key:{KEY}, value:{VALUE}}")
             props = {"KEY":data['key'], "VALUE":data['value']}
             records = neo_graph.cypher.execute(cypher, props)
+            #print cypher, props  #  DEBUG
             #print type(records)
             for record in records:
                 #print record  # DEBUG
-                for topic in record.topics:
-                    attr = dict(topic.properties)
+                for tnode in record.topics:
+                    attr = dict(tnode.properties)
                     uri = u'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
                     sg.add_node(uri, attr)
-                    topic_ids.add(topic.ref.split("/")[-1])
+                    topic_ids.add(int(tnode.ref.split("/")[-1]))
 
         # Add nodes at depth 1  (done separately as it doesn't include the intermediary
         nodes = dict()
@@ -303,8 +304,10 @@ class PluginOne(IPlugin):
                 attr = {"MAX_DEPTH": max_depth,
                         "TOPICS": list(topic_ids),
                         "DONT_FOLLOW": dont_follow}
-            # for record in neo_graph.cypher.stream(cypher, attr):  # TODO: Would prefer streaming but it errore
-            for record in neo_graph.cypher.execute(cypher, attr):
+            #print cypher, attr  # DEBUG
+            for record in neo_graph.cypher.stream(cypher, attr):  # Prefer streaming to execute, if it works
+#            for record in neo_graph.cypher.execute(cypher, attr):
+                #print record  # DEBUG
                 for node in record.nodes:
                     attr = dict(node.properties)
                     uri = 'class={0}&key={1}&value={2}'.format(attr['class'],attr['key'], attr['value'])
@@ -339,9 +342,40 @@ class PluginOne(IPlugin):
                     edge_attr["uri"] = edge_uri
                     sg.add_edge(src_uri, dst_uri, edge_uri, edge_attr)
 
+        # Set the topic distances
+        distances = self.get_topic_distance(sg.to_undirected(), topic)
+        nx.set_node_attributes(sg, u'topic_distance', distances)
+
         # TODO:  Handle duplicate edges (may dedup but leave in for now)
         #          Take edges into dataframe
         #          group by combine on features to be deduplicated.  Return edge_id's in each group.  Combine those edge_ids using a combine algorithm
         #          Could do the same with dedup algo, but just return the dedup edge_ids and delete them from the graph
 
         return sg
+
+
+    def get_topic_distance(self, sg, topic):
+        """
+
+        :param sg: an egocentric subgraph in networkx format
+        :param topic: a networkx graph of nodes representing the topic
+        :return: a dictionary of key node name and value distance as integer
+        """
+        distances = dict()
+
+        # get all the distances
+        for tnode in topic.nodes():
+            if tnode in sg.nodes():
+                distances[tnode] = nx.shortest_path_length(sg, source=tnode)
+
+        # get the smallest distance per key
+        min_dist = dict()
+        for key in distances:
+            for node in distances[key]:
+                if node not in min_dist:
+                    min_dist[node] = distances[key][node]
+                elif distances[key][node] < min_dist[node]:
+                    min_dist[node] = distances[key][node]
+
+        # Return the dict
+        return min_dist

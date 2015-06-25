@@ -39,11 +39,11 @@ import imp
 LOCATION = "/Users/v685573/Documents/Development/verum/"
 # import verum
 fp, pathname, description = imp.find_module("verum", [LOCATION])
-VERUM = imp.load_module("verum", fp, pathname, description)
+Verum = imp.load_module("verum", fp, pathname, description)
 # Load plugins. NOTE: if your directory is wrong, you won't receive an error but will see no individual plugins listed as successfully configured.
-ENRICH = VERUM.enrich("~/Documents/Development/verum/plugins")
+verum = Verum.app("~/Documents/Development/verum/plugins")
 # display loaded plugins directly using yapsy
-for plugin in ENRICH.plugins.getAllPlugins():
+for plugin in verum.plugins.getAllPlugins():
     print plugin.name
 ```
 
@@ -86,11 +86,10 @@ ips2 = ['107.160.143.10',
  '148.163.104.35',
  '184.164.70.204',
  '184.164.81.11',
- '184.164.81.11',
  '216.244.93.247',
  '50.117.38.170',
  '50.117.38.170']
-domain2 = ['4uexs.rxlijd.bbs.mythem.es',
+domains2 = ['4uexs.rxlijd.bbs.mythem.es',
  'abdebassetbenhassen.org',
  'acid.borec.cz',
  'blogs.burlingtonfreepress.com',
@@ -115,8 +114,6 @@ domain2 = ['4uexs.rxlijd.bbs.mythem.es',
  'myinfo.any-request-allowed.com',
  'oceanspirit.com',
  'opm-learning.org',
- 'opm-learning.org',
- 'opmsecurity.org',
  'opmsecurity.org',
  'pejoratively.bloq.ro',
  'subhashmadhu.com',
@@ -136,62 +133,46 @@ domain2 = ['4uexs.rxlijd.bbs.mythem.es',
 Run the following to test enrichment.
 ```
 # Query IP & domain plugins
-print ENRICH.get_enrichments(['ip'])
-print ENRICH.get_enrichments(['domain'])
+print verum.get_enrichments(['ip'])
+print verum.get_enrichments(['domain'])
 # Query cheap IP plugins
-print ENRICH.get_enrichments(['ip'], cost=3)
+print verum.get_enrichments(['ip'], cost=3)
 # Query fast domain plugins
-print ENRICH.get_enrichments(['domain'], speed=2)
+print verum.get_enrichments(['domain'], speed=2)
 # Run maxmind enrichments of an IP
 import networkx as nx
-g = ENRICH.run_enrichments(ips[0], 'ip', names=[u'Maxmind ASN Enrichment'])
+g = verum.run_enrichments(ips[0], 'ip', names=[u'Maxmind ASN Enrichment'])
 print nx.info(g)
 ```
 
 Run the following to test querying.  (Note: the storage interface modules expect graphs to be in a specific schema.  If they are not, the interface module will error trying to store them.)
 ```
 # (If you didn't create a graph above through an enrichment)
-import networkx as nx
-import copy
-g = nx.MultiDiGraph()
-node_props = {"class":"attribute", "key":"name", "value":0}
-for i in range(5):
-    attr = copy.deepcopy(node_props)
-    attr["value"] = i
-    uri = "class={0}&key={1}&value={2}".format(attr['class'], attr['key'], attr['value'])
-    g.add_node(uri, attr)
-for i in range(len(g.nodes())-1):
-    g.add_edge(g.nodes()[i], g.nodes()[i+1])
+g = Verum.create_topic({'ip': ['184.164.70.204', '184.164.81.11'], 'domain': ['WDC-News-post.com', 'wdc-news-post.com']})
 ```
 
 ```
 # See what storage interfaces are configured
-print ENRICH.get_interfaces(configured=True)
+print verum.get_interfaces(configured=True)
 # Set the storage interface
-ENRICH.set_interface('Neo4j')
+verum.set_interface('Neo4j')
 # Store the graph in the storage interface
-ENRICH.store_graph(g)
+verum.store_graph(g)
 ```
 
 Finally, Attempt to enrich multiple pieces of data to form a robust context graph:
 ```
 # Enrich IPs
-for ip in ips:
-    ENRICH.store_graph(ENRICH.run_enrichments(ip, 'ip', names=[u'Maxmind ASN Enrichment']))
+for ip in ips + ips2:
+    verum.store_graph(verum.run_enrichments(ip, 'ip', names=[u'Maxmind ASN Enrichment']))
 # Enrich Domains (passing exceptions so if a plugin fails it doesn't stop the loop)
-for domain in domains:
+for domain in domains + domains2:
     try:
-        ENRICH.store_graph(ENRICH.run_enrichments(domain, 'domain', names=[u'DNS Enrichment', u'TLD Enrichment']))
+        verum.store_graph(verum.run_enrichments(domain, 'domain', names=[u'DNS Enrichment', u'TLD Enrichment']))
     except:
         pass
 # Bulk enrich IPs with Cymru
-ENRICH.store_graph(ENRICH.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
-# Classify all IPs and Domains as Malicious
-for ip in ips:
-    ENRICH.store_graph(ENRICH.classify.run(ip, "ip", "malicious"))
-for domain in domains:
-    ENRICH.store_graph(ENRICH.classify.run(domain, "domain", "malicious"))
-
+verum.store_graph(verum.run_enrichments(ips + ips2, 'ip', names=[u'Cymru Enrichment']))
 ```
 
 Now open `http://locahost:7474/` in a browser and enter the Cypher Query:
@@ -204,7 +185,11 @@ You can then visually explore the graph associated with that IP.
 
 We want to classify all these domains and IPs as malicious:
 ```
-TODO: Classification enrichment
+# Classify all IPs and Domains as Malicious
+for ip in ips + ips2:
+    verum.store_graph(verum.classify.run(ip, "ip", "malicious"))
+for domain in domains + domains2:
+    verum.store_graph(verum.classify.run(domain, "domain", "malicious"))
 ```
 
 ### Querying
@@ -212,18 +197,18 @@ TODO: Classification enrichment
 Now that we have built an enriched context graph, we can query it.
 
 ```
-#TODO: Find out if < '117.18.73.98',> is malicious
+#Find out if < '117.18.73.98',> is malicious
 # Create a topic to score
-topic = VERUM.cg_query.create_topic({"ip": '117.18.73.98'})
+topic = Verum.create_topic({"ip": '117.18.73.98'})
 # Retrieve the subgraph associated with it
-sg = ENRICH.run_query(topic)
+sg = verum.run_query(topic)
 # List out configured scoring plugins available.
-ENRICH.get_scoring_plugins()
+verum.get_scoring_plugins()
 # Set the default scoring plugin
-ENRICH.set_scoring_plugin('PageRank2')
+verum.set_scoring_plugin('PageRank2')
 # Check to ensure it was set
-ENRICH.get_default_scoring_plugin()
-print ENRICH.score_subgraph(topic, sg)
+verum.get_default_scoring_plugin()
+print verum.score_subgraph(topic, sg)
 ```
 
 
