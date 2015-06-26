@@ -34,7 +34,7 @@ pass
 
 
 # USER VARIABLES
-WHOIS_CONFIG_FILE = "whois.yapsy-plugin"
+WHOIS_CONFIG_FILE = "ipwhois.yapsy-plugin"
 STATES = {'AA': 'armed forces americas', 'AE': 'armed forces middle east', 'AK': 'alaska', 'AL': 'alabama',
           'AP': 'armed forces pacific', 'AR': 'arkansas', 'AS': 'american samoa', 'AZ': 'arizona', 'CA': 'california',
           'CO': 'colorado', 'CT': 'connecticut', 'DC': 'district of columbia', 'DE': 'delaware', 'FL': 'florida',
@@ -48,7 +48,7 @@ STATES = {'AA': 'armed forces americas', 'AE': 'armed forces middle east', 'AK':
           'SD': 'south dakota', 'TN': 'tennessee', 'TX': 'texas', 'UT': 'utah', 'VA': 'virginia',
           'VI': 'virgin islands', 'VT': 'vermont', 'WA': 'washington', 'WI': 'wisconsin', 'WV': 'west virginia',
           'WY': 'wyoming'}
-NAME = "Whois Enrichment"
+NAME = "IP Whois Enrichment"
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
 

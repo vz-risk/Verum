@@ -1,6 +1,6 @@
 [Core]
-Name = Whois Enrichment
-Module = whois
+Name = IP Whois Enrichment
+Module = ipwhois
 
 [Documentation]
 Author = Gabriel Bassett
