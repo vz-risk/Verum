@@ -50,6 +50,11 @@ import uuid
 import ConfigParser
 import logging
 import inspect
+try:
+    import dns.resolver
+    resolver_import = True
+except:
+    resolver_import = False
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -119,7 +124,6 @@ class PluginOne(IPlugin):
         else:
             time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        ip = socket.gethostbyname(domain)
         g = nx.MultiDiGraph()
 
         # Get or create Domain node
@@ -131,6 +135,12 @@ class PluginOne(IPlugin):
             "start_time": time,
             "uri": domain_uri
         })
+
+        # Try the DNS lookup and just return the domain if the lookup fails
+        try:
+            ip = socket.gethostbyname(domain)
+        except socket.gaierror:
+            return g
 
         # Get or create Enrichment node
         dns_uri = "class=attribute&key={0}&value={1}".format("enrichment", "dns")
@@ -186,5 +196,46 @@ class PluginOne(IPlugin):
             edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
         edge_attr["uri"] = edge_uri
         g.add_edge(domain_uri, dns_uri, edge_uri, edge_attr)
+
+
+        if resolver_import:
+            # Get nameservers.  (note, this can get cached ones, but the more complex answer at http://stackoverflow.com/questions/4066614/how-can-i-find-the-authoritative-dns-server-for-a-domain-using-dnspython didn't work.)
+            # If resolution fails, simply return the graph as is
+            try:
+                answers = dns.resolver.query(domain, 'NS')
+            except dns.resolver.NoAnswer:
+                return g
+
+            for ns in answers:
+                ns = ns.to_text().rstrip(".")
+
+                # Create the nameserver node
+                ns_uri = "class=attribute&key={0}&value={1}".format("domain", ns)
+                g.add_node(ns_uri, {
+                    'class': 'attribute',
+                    'key': "domain",
+                    "value": ns,
+                    "start_time": time,
+                    "uri": ns_uri
+                })
+
+                # Link it to the domain
+                edge_attr = {
+                    "relationship": "describedBy",
+                    "start_time": time,
+                    "origin": "dns",
+                    "describedBy": "nameserver" 
+                }
+                source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
+                dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, ns_uri)
+                edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
+                rel_chain = "relationship"
+                while rel_chain in edge_attr:
+                    edge_uri = edge_uri + "&{0}={1}".format(rel_chain,edge_attr[rel_chain])
+                    rel_chain = edge_attr[rel_chain]
+                if "origin" in edge_attr:
+                    edge_uri += "&{0}={1}".format("origin", edge_attr["origin"])
+                edge_attr["uri"] = edge_uri
+                g.add_edge(domain_uri, ns_uri, edge_uri, edge_attr)
 
         return g
