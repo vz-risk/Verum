@@ -36,8 +36,8 @@ pass
 
 
 # USER VARIABLES
-PLUGIN_CONFIG_FILE = "plugin_template.yapsy-plugin"
-NAME = "<NAME FROM CONFIG FILE AS BACKUP IF CONFIG FILE DOESN'T LOAD>"
+PLUGIN_CONFIG_FILE = "plugin_template.yapsy-plugin"  # CHANGEME
+NAME = "<NAME FROM CONFIG FILE AS BACKUP IF CONFIG FILE DOESN'T LOAD>"  # CHANGEME
 
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
@@ -81,16 +81,16 @@ if config.has_section('Log'):
 class PluginOne(IPlugin):
     inputs = None
 
-    #  TODO: The init should contain anything to load modules or data files that should be variables of the  plugin object
+    #  CHANGEME: The init should contain anything to load modules or data files that should be variables of the  plugin object
     def __init__(self):
         pass
 
-    #  TODO: Configuration needs to set the values needed to identify the plugin in the plugin database as well as ensure everyhing loaded correctly
-    #  TODO: Current  layout is for an enrichment plugin
-    #  TODO: enrichment [type, successful_load, name, description, inputs to enrichment such as 'ip', cost, speed]
-    #  TODO: interface [type, successful_load, name]
-    #  TODO: score [TBD]
-    #  TODO: minion [TBD]
+    #  CHANGEME: Configuration needs to set the values needed to identify the plugin in the plugin database as well as ensure everyhing loaded correctly
+    #  CHANGEME: Current  layout is for an enrichment plugin
+    #  CHANGEME: enrichment [type, successful_load, name, description, inputs to enrichment such as 'ip', cost, speed]
+    #  CHANGEME: interface [type, successful_load, name]
+    #  CHANGEME: score [type, successful_load, name, description, cost, speed]
+    #  CHANGEME: minion [TBD]
     def configure(self):
         """
 
@@ -133,13 +133,13 @@ class PluginOne(IPlugin):
             return [plugin_type, True, NAME, description, self.inputs, cost, speed]
 
 
-    #  TODO: The correct type of execution function must be defined for the type of plugin
-    #  TODO: enrichment: "run(<thing to enrich>, inputs, start_time, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  TODO: interface: enrich(graph, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  TODO:            query(topic, max_depth, config, dont_follow, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  TODO: score: score(subgraph, topic, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  TODO: minion [TBD] 
-    #  TODO: Enrichment plugin specifics:
+    #  CHANGEME: The correct type of execution function must be defined for the type of plugin
+    #  CHANGEME: enrichment: "run(<thing to enrich>, inputs, start_time, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+    #  CHANGEME: interface: enrich(graph, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+    #  CHANGEME:            query(topic, max_depth, config, dont_follow, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+    #  CHANGEME: score: score(subgraph, topic, any other plugin-specific attributes-MUST HAVE DEFAULTS)
+    #  CHANGEME: minion [TBD] 
+    #  CHANGEME: Enrichment plugin specifics:
     #  -     Created nodes/edges must follow http://blog.infosecanalytics.com/2014/11/cyber-attack-graph-schema-cags-20.html
     #  -     The enrichment should include a node for the <thing to enrich>
     #  -     The enrichment should include a node for the enrichment which is is statically defined & key of "enrichment"
@@ -147,7 +147,7 @@ class PluginOne(IPlugin):
     #  -     Each enrichment datum should have a node
     #  -     An edge should exist from <thing to enrich> to each enrichment datum
     #  -     The run function should then return a networkx directed multi-graph including the nodes and edges
-    #  TODO: Interface plugin specifics:
+    #  CHANGEME: Interface plugin specifics:
     #  -     In the most efficient way possible, merge nodes and edges into the storage medium
     #  -     Merger of nodes should be done based on matching key & value.
     #  -     URI should remain static for a given node.
@@ -160,10 +160,10 @@ class PluginOne(IPlugin):
     #  -     edges within the max_distance from any node in the topic graph from the storage backend graph.
     #  -     As a default, ['enrichment', 'classification'] should not be followed.
     #  -     The query function must add a 'topic_distance' property to all nodes.
-    #  TODO: Score plugin specifics:
+    #  CHANGEME: Score plugin specifics:
     #  -     Scoring plugins should take a topic and networkx (sub)graph and return a dictionary keyed with the node (name) and with
     #  -     values of the score assigned to the node for the given topic.
-    #  TODO: Minion plugin specifics:
+    #  CHANGEME: Minion plugin specifics:
     #  -     [TBD]
     def run(self, domain, inputs=None, start_time="", include_subdomain=False):
         """

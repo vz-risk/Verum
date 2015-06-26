@@ -254,7 +254,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_name",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, name_uri)
@@ -284,7 +284,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_organization",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_uri)
@@ -314,7 +314,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_organization_address",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_addr_uri)
@@ -344,7 +344,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_organization_city",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_city_uri)
@@ -379,7 +379,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_organization_state",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_state_uri)
@@ -409,7 +409,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_organization_country",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_country_uri)
@@ -439,7 +439,7 @@ class PluginOne(IPlugin):
                 "relationship": "describedBy",
                 "start_time": record_time,
                 "describeBy": "registrant_email",
-                "origin": "whois_record_enrichment"
+                "origin": "ipwhois_record_enrichment"
             }
             source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
             dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, reg_org_email_uri)
@@ -457,7 +457,7 @@ class PluginOne(IPlugin):
         edge_attr = {
             "relationship": "describedBy",
             "start_time": time,
-            "origin": "whois_record_enrichment"
+            "origin": "ipwhois_record_enrichment"
         }
         source_hash = uuid.uuid3(uuid.NAMESPACE_URL, domain_uri)
         dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, whois_record_uri)
