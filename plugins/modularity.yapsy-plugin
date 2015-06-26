@@ -1,0 +1,18 @@
+[Core]
+Name = Modularity
+Module = modularity
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a subgraph and modularity-based partitioning (clustering) of the subgraph
+
+[Configuration]
+Type = score
+cost = 2
+speed = 2
+
+[Log]
+level = debug
+# file = ./logfile.log

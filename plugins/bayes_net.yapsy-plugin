@@ -1,0 +1,18 @@
+[Core]
+Name = BayesNet
+Module = bayes_net
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a subgraph and topic, treats the subgraph as a bayesian inference network, assumes the topic true, and scores the other nodes.
+
+[Configuration]
+Type = score
+cost = 8
+speed = 8
+
+[Log]
+level = debug
+# file = ./logfile.log

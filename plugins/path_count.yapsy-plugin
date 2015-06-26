@@ -1,0 +1,18 @@
+[Core]
+Name = PathCount
+Module = path_count
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a subgraph and topic and scores nodes based on the number of paths between the topic and the node
+
+[Configuration]
+Type = score
+cost = 4
+speed = 6
+
+[Log]
+level = debug
+# file = ./logfile.log

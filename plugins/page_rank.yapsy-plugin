@@ -1,0 +1,18 @@
+[Core]
+Name = PageRank
+Module = page_rank
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Takes a subgraph and topic and uses pagerank without any specific specialization to score the nodes in the subgraph.
+
+[Configuration]
+Type = score
+cost = 2
+speed = 2
+
+[Log]
+level = debug
+# file = ./logfile.log
