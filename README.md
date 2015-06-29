@@ -187,9 +187,9 @@ We want to classify all these domains and IPs as malicious:
 ```
 # Classify all IPs and Domains as Malicious
 for ip in ips + ips2:
-    verum.store_graph(verum.classify.run({'key': 'ip', 'value': ip, 'classification': 'malicious'))
+    verum.store_graph(verum.classify.run({'key': 'ip', 'value': ip, 'classification': 'malice'))
 for domain in domains + domains2:
-    verum.store_graph(verum.classify.run({'key': 'domain', 'value': domain, 'classification': 'malicious'}))
+    verum.store_graph(verum.classify.run({'key': 'domain', 'value': domain, 'classification': 'malice'}))
 ```
 
 ### Querying
@@ -208,8 +208,21 @@ verum.get_scoring_plugins()
 verum.set_scoring_plugin('PageRank2')
 # Check to ensure it was set
 verum.get_default_scoring_plugin()
-print verum.score_subgraph(topic, sg)
+scores = verum.score_subgraph(topic, sg)
+print scores
 ```
+
+To understand the scores, we can do some relative comparisons.  We compare the malice score both to the topic as well as to other nodes and see that the malice node is stronger than average but not overly strong.
+```
+# Compare the malice node to the average score
+Verum.compare_classifications(scores, {"class":"attribute", "key":"classification", "value":"malice"}, output="print")
+# Compare the malice node to the topic node
+Verum.compare_classifications(scores, {"class":"attribute", "key":"classification", "value":"malice"}, {"class":"attribute", "key":"ip", "value":"117.18.73.98"}, output="print")
+# Score the percentile of the malice score
+Verum.score_percentile(scores, {"class":"attribute", "key":"classification", "value":"malice"}, output="print")
+```
+
+Note, if you wanted to know about malice, you could rescore the subgraph with the malice node as the topic and compare the node you are interested in, (117.18.73.98 in our example), and compare it to the other nodes as above.
 
 
 ## Contributing

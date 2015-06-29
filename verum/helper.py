@@ -57,6 +57,7 @@ import ConfigParser
 import networkx as nx
 import urlparse
 import numpy as np
+from scipy import stats  # for percentile
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -211,6 +212,96 @@ def get_topic_distance(sg, topic):
 
     # Return the dict
     return min_dist
+
+
+def compare_classifications(scores, node1, node2=None, output="print"):
+    """
+
+    :param scores: dictionary keyed by nodes and values of scores
+    :param node1: dictionary of {"class":<class>, "key":<key>, "value":<value>}
+    :param node2: dictionary of {"class":<class>, "key":<key>, "value":<value>}.  If empty, score will be compared to the median
+    :param output: string representing how to output the data.  "print" to print it, dictionary otherwise
+    :return: ratio of node 1 to node 2 scores normalized to the lower score as dictionary
+    """
+    node1_uri = "class={0}&key={1}&value={2}".format(node1['class'], node1['key'], node1['value'])
+
+    node1_score = scores[node1_uri]
+    if node2 is None:
+        node2_score = np.median(scores.values())
+    else:
+        node2_uri = "class={0}&key={1}&value={2}".format(node2['class'], node2['key'], node2['value'])
+        node2_score = scores[node2_uri]
+
+    if node1_score > node2_score:
+        larger = "node1"
+    else:
+        larger = "node2"
+
+    if output == "print":
+        if node2 is None:
+            if larger == "node2":
+                print "The ratio of node 1 ({0}:{1}) to the median ({2}) is {3}:{4}.".format(node1['key'],
+                                                                                             node1['value'],
+                                                                                             node2_score,
+                                                                                             node1_score/float(node1_score),
+                                                                                             node2_score/float(node1_score))
+            else:
+                print "The ratio of node 1 ({0}:{1}) to the median ({2}) is {3}:{4}.".format(node1['key'],
+                                                                                             node1['value'],
+                                                                                             node2_score,
+                                                                                             node1_score/float(node2_score),
+                                                                                             node2_score/float(node2_score))   
+        else:
+            if larger == "node2":
+                print "The ratio of node 1 ({0}:{1}) to node 2 ({2}:{3}) is {4}:{5}.".format(node1['key'],
+                                                                                             node1['value'],
+                                                                                             node2['key'],
+                                                                                             node2['value'],
+                                                                                             node1_score/float(node1_score),
+                                                                                             node2_score/float(node1_score))
+            else:
+                print "The ratio of node 1 ({0}:{1}) to node 2 ({2}:{3}) is {4}:{5}.".format(node1['key'],
+                                                                                             node1['value'],
+                                                                                             node2['key'],
+                                                                                             node2['value'],
+                                                                                             node1_score/float(node2_score),
+                                                                                             node2_score/float(node2_score))        
+    else:
+        if larger == "node2":
+            return {"node1": node1_score/float(node1_score), "node2":node2_score/float(node1_score)}
+        else:
+            return {"node1": node1_score/float(node2_score), "node2":node2_score/float(node2_score)}
+
+
+def score_percentile(scores, node1, output="print"):
+    """
+
+    :param scores: dictionary keyed by nodes and values of scores
+    :param node1: dictionary of {"class":<class>, "key":<key>, "value":<value>}
+    :param output: string representing how to output the data.  "print" to print it, dictionary otherwise
+    :return: the percentile the node is in.  Higher means more likely.ff
+    """
+    node1_uri = "class={0}&key={1}&value={2}".format(node1['class'], node1['key'], node1['value'])
+
+    p =stats.percentileofscore(scores.values(), scores[node1_uri])
+
+    if output == "print":
+        print "The percentile of the node is {0}.".format(p)
+    else:
+        return p
+
+
+def merge_graphs(g1, g2):
+    """
+
+    """
+    g = g1.deecopy()
+    for node, props in g2.nodes(data=True):
+        g.add_node(node, props)
+    for edge in g2.edges(data=True):
+        g.add_edge(edge[0], edge[1], attr_dict=edge[2])
+
+    return g
 
 
 ## MAIN LOOP EXECUTION
