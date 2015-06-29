@@ -1,0 +1,18 @@
+[Core]
+Name = <plugin name>
+Module = <the file name of the associated plugin, minus the '.py'>
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = <description>
+
+[Configuration]
+Type = <type: interface, enrichment, query, minion>
+<variable1> = <value 1>
+<variable2> = <value 2>
+
+[Log]
+level = debug
+# file = ./logfile.log
