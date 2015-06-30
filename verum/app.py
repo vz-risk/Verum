@@ -58,6 +58,7 @@ import sqlite3
 import networkx as nx
 import os
 import urlparse  # For validate_url helper
+import inspect
 
 ## SETUP
 __author__ = "Gabriel Bassett"
@@ -76,7 +77,6 @@ if __name__ == "__main__":
     parser.add_argument('--log', help='Location of log file', default=None)
     parser.add_argument('--plugins', help="Location of plugin directory", default=None)
 
-
 # Read Config File - Will overwrite file User Variables Section
 log = LOG
 loglevel = LOGLEVEL
@@ -92,6 +92,8 @@ if config_file:
     if config.has_section('Core'):
         if 'plugins' in config.options('Core'):
             PluginFolder = config.get('Core', 'plugins')
+        if 'minions' in config.options('Core'):
+            MinionFolder = config.get('Core', 'minions')
     if config.has_section('LOGGING'):
         if 'level' in config.options('LOGGING'):
             level = config.get('LOGGING', 'level')
@@ -123,6 +125,11 @@ if log:
 else:
     logging.basicConfig(level=loglevel)
 
+# setup
+loc = inspect.getfile(inspect.currentframe())
+ind = loc.rfind("/")
+loc = loc[:ind+1]
+
 
 ## EXECUTION
 class app():
@@ -130,21 +137,30 @@ class app():
     plugins = None  # Configured plugins
     storage = None  # The plugin to use for storage
     PluginFolder = None  # Folder where the plugins are
+    MinionFolder = None  # Folder where the minions are
     score = None  # the plugin to use for scoring
     classify = None  # the clasification plugin
+    helper = None
 
-    def __init__(self, PluginFolder=PluginFolder):
+    def __init__(self, PluginFolder=PluginFolder, MinionFolder=MinionFolder):
         #global PluginFolder
         self.PluginFolder = PluginFolder
 
+        #global MinionsFolder
+        self.MinionFolder = MinionFolder
+
         # Load enrichments database
         self.db = self.set_db()
+
+        # LOAD HELPER FROM SAME DIRECTORY
+        fp, pathname, description = imp.find_module("helper", [loc])
+        self.helper = imp.load_module("helper", fp, pathname, description)
 
         # Load the plugins Directory
         if self.PluginFolder:
             self.load_plugins()
         else:
-            logging.warning("Plugin folder not doesn't exist.  Plugins not configured.  Please run set_plugin_folder(<PluginFolder>) to set the plugin folder and then load_plugins() to load plugins.")
+            logging.warning("Plugin folder doesn't exist.  Plugins not configured.  Please run set_plugin_folder(<PluginFolder>) to set the plugin folder and then load_plugins() to load plugins.")
 
 
     ## PLUGIN FUNCTIONS
@@ -159,7 +175,10 @@ class app():
     def load_plugins(self):
         print "Configuring Plugin manager."
         self.plugins = PluginManager()
-        self.plugins.setPluginPlaces([self.PluginFolder])
+        if self.MinionFolder is None:
+            self.plugins.setPluginPlaces([self.PluginFolder])
+        else:
+            self.plugins.setPluginPlaces([self.PluginFolder, self.MinionFolder])
         #self.plugins.collectPlugins()
         self.plugins.locatePlugins()
         self.plugins.loadPlugins()
@@ -173,7 +192,7 @@ class app():
         cur.execute("""DELETE FROM inputs""")
         cur.execute("""DELETE FROM storage""")
         cur.execute("""DELETE FROM score""")
-
+        cur.execute("""DELETE FROM minion""")
 
         for plugin in self.plugins.getAllPlugins():
             plugin_config = plugin.plugin_object.configure()
@@ -198,7 +217,14 @@ class app():
                                                                                plugin_config[4], # Cost
                                                                                plugin_config[5]) # Speed 
                 )
-
+            if plugin_config[0] == 'minion':
+                plugin_config = plugin.plugin_object.configure(verum=loc[:-6], plugins=self.PluginFolder)  # -6 strips off the "verum/" from the location
+                cur.execute('''INSERT INTO minion VALUES (?, ?, ?, ?)''', (plugin_config[2], # Name
+                                                                           int(plugin_config[1]), # Enabled
+                                                                           plugin_config[3], # Descripton
+                                                                           plugin_config[4]) # Speed 
+                )
+                
             if plugin.name == "classify":  # Classify is a unique name.  TODO: figure out if handling multiple 'classify' plugins is necessary
                 self.classify = plugin.plugin_object
 
@@ -228,14 +254,19 @@ class app():
                                              configured int
                                             );''')
 
-        # Create storage table
+        # Create score table
         cur.execute('''CREATE TABLE score (name text NOT NULL PRIMARY KEY,
                                              configured int,
                                              description text,
                                              cost int,
                                              speed int);''')
-        conn.commit()
 
+        # Create minion table
+        cur.execute('''CREATE TABLE minion (name text NOT NULL PRIMARY KEY,
+                                             configured int,
+                                             description text,
+                                             cost int);''')
+        conn.commit()
         return conn
 
 
@@ -355,6 +386,90 @@ class app():
         else:
             raise ValueError("Requested interface {0} not configured. Options are {1}.".format(interface, configured_storage))
 
+    '''
+    # I don't think I need
+    def load_minions(self):
+        # Loop round the plugins and print their names.
+        cur = self.db.cursor()
+
+        # Clear tables
+        cur.execute("""DELETE FROM minion""")
+
+        for plugin in self.plugins.getAllPlugins():
+            if plugin_config[0] == 'minion':
+                plugin_config = plugin.plugin_object.configure(self)
+                cur.execute("""INSERT INTO minion VALUES (?, ?, ?, ?)""", (plugin_config[2], # Name
+                                                                           int(plugin_config[1]), # Enabled
+                                                                           plugin_config[3], # Descripton
+                                                                           plugin_config[4]) # Speed 
+                )
+    '''
+
+    def get_minions(self, cost=10000, configured=None):
+        """
+
+        :param cost: a maximum cost of running the minion
+        :param configured: True, False, or None (for both).  
+        :return: list of strings of tuples of (name, description) of minion plugins
+        """
+        cur = self.db.cursor()
+        minions = list()
+
+        if configured is None:
+            for row in cur.execute('''SELECT DISTINCT name, description FROM minion WHERE cost <= ?;''', [int(cost)]):
+                minions.append(tuple(row[0:2]))
+        else:
+             for row in cur.execute('''SELECT DISTINCT name, description FROM minion WHERE cost <= ? AND configured=?;''', [int(cost), int(configured)]):
+                minions.append(tuple(row[0:2]))    
+        return minions
+
+    def start_minions(self, names=None, cost=10000):
+        """
+
+        :param names: a list of names of minions to run
+        :param cost: a maximum cost for minions 
+        """
+        minions = self.get_minions(cost=cost, configured=True)
+        minions = [m[0] for m in minions]
+
+        # IF a name(s) are given, subset to them
+        if names:
+            minions = set(minions).intersection(set(names))
+
+        for minion in minions:
+            # get the plugin
+            plugin = self.plugins.getPluginByName(minion)
+            # start the plugin
+            plugin.plugin_object.start()
+
+    def get_running_minions(self):
+        """
+        
+        :return: A set of names of minions which are running
+        """
+
+        minions = self.get_minions(cost=10000, configured=True)
+        minions = [m[0] for m in minions]
+
+        running_minions = set()
+        # Iterate Through the minions
+        for minion in minions:
+            plugin = self.plugins.getPluginByName(minion)
+            if plugin.plugin_object.isAlive():
+                running_minions.add(minion)
+
+        return running_minions
+
+    def stop_minions(self, names=None):
+        minions = self.get_running_minions()
+        if names is not None:
+            minions = set(minions).intersection(set(names))
+
+        for minion in minions:
+            # get the plugin
+            plugin = self.plugins.getPluginByName(minion)
+            # start the plugin
+            plugin.plugin_object.stop()        
 
     def run_query(self, topic, max_depth=4, dont_follow=['enrichment', 'classification'], storage=None):
         """

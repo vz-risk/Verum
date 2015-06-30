@@ -103,7 +103,7 @@ class PluginOne(IPlugin):
             speed = 9999
 
         if config.has_section('Documentation') and 'description' in config.options('Documentation'):
-            description = config.get('Configuration', 'type')
+            description = config.get('Documentation', 'description')
         else:
             logging.error("'Description not in config file.")
             return [None, False, NAME, None, cost, speed]

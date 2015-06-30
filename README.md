@@ -41,7 +41,9 @@ LOCATION = "/Users/v685573/Documents/Development/verum/"
 fp, pathname, description = imp.find_module("verum", [LOCATION])
 Verum = imp.load_module("verum", fp, pathname, description)
 # Load plugins. NOTE: if your directory is wrong, you won't receive an error but will see no individual plugins listed as successfully configured.
-verum = Verum.app("~/Documents/Development/verum/plugins")
+verum = Verum.app("~/Documents/Development/verum/plugins", "~/Documents/Development/verum/minions")
+# Enable the minions
+verum.load_minions()
 # display loaded plugins directly using yapsy
 for plugin in verum.plugins.getAllPlugins():
     print plugin.name
@@ -212,6 +214,7 @@ scores = verum.score_subgraph(topic, sg)
 print scores
 ```
 
+### Scoring
 To understand the scores, we can do some relative comparisons.  We compare the malice score both to the topic as well as to other nodes and see that the malice node is stronger than average but not overly strong.
 ```
 # Compare the malice node to the average score
@@ -223,6 +226,34 @@ Verum.score_percentile(scores, {"class":"attribute", "key":"classification", "va
 ```
 
 Note, if you wanted to know about malice, you could rescore the subgraph with the malice node as the topic and compare the node you are interested in, (117.18.73.98 in our example), and compare it to the other nodes as above.
+
+
+### Minions
+Minions are threaded algorithms that operate on the context graph in the background.  They have access to the app object so hare more ability to work directly with the context graph than other apps.
+
+First, run the following cypher query to find out how many nodes are in your context graph.
+```
+start n=node(*)
+match n
+return count(n)
+```
+
+Start a simple minion which imports and enriches a threat intelligence feed.
+```
+# List configured minions
+verum.get_minions()
+# Start a minion
+verum.start_minions([u'OSINT Bambenek Consulting'])
+# Check if it's started
+verum.get_running_minions()
+```
+
+Check the number of nodes.  It should be increasing.
+```
+start n=node(*)
+match n
+return count(n)
+```
 
 
 ## Contributing

@@ -295,7 +295,7 @@ def merge_graphs(g1, g2):
     """
 
     """
-    g = g1.deecopy()
+    g = g1.copy()
     for node, props in g2.nodes(data=True):
         g.add_node(node, props)
     for edge in g2.edges(data=True):
