@@ -332,8 +332,8 @@ class PluginOne(IPlugin):
                             except:
                                 pass
 
-                        print g.nodes(data=True)  # DEBUG
-                        print g.edges(data=True)  # DEBUG
+                        #print g.nodes(data=True)  # DEBUG
+                        #print g.edges(data=True)  # DEBUG
 
                         self.app.store_graph(g)
 
