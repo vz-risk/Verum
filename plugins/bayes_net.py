@@ -121,7 +121,6 @@ class PluginOne(IPlugin):
 
         :param sg: egocentric subgraph around topic in networkx format
         :param topic: graph of topics
-        :param distance_degradation: A factor for degrading as distance from the topic increases
         :return: Dictionary of probabilities keyed by node
 
         NOTE: Will error on cycles in graph
