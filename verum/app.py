@@ -140,7 +140,8 @@ class app():
     MinionFolder = None  # Folder where the minions are
     score = None  # the plugin to use for scoring
     classify = None  # the clasification plugin
-    helper = None
+    helper = None  # The verum helper functions
+    loc = None  # The verum lcoation
 
     def __init__(self, PluginFolder=PluginFolder, MinionFolder=MinionFolder):
         #global PluginFolder
@@ -155,6 +156,9 @@ class app():
         # LOAD HELPER FROM SAME DIRECTORY
         fp, pathname, description = imp.find_module("helper", [loc])
         self.helper = imp.load_module("helper", fp, pathname, description)
+
+        # Save the verum location
+        self.loc = loc[:-6]  # -6 removed the trailing "verum/" from the location.
 
         # Load the plugins Directory
         if self.PluginFolder:
@@ -218,13 +222,13 @@ class app():
                                                                                plugin_config[5]) # Speed 
                 )
             if plugin_config[0] == 'minion':
-                plugin_config = plugin.plugin_object.configure(verum=loc[:-6], plugins=self.PluginFolder)  # -6 strips off the "verum/" from the location
+                plugin_config = plugin.plugin_object.configure(self)
                 cur.execute('''INSERT INTO minion VALUES (?, ?, ?, ?)''', (plugin_config[2], # Name
                                                                            int(plugin_config[1]), # Enabled
                                                                            plugin_config[3], # Descripton
                                                                            plugin_config[4]) # Speed 
                 )
-                
+
             if plugin.name == "classify":  # Classify is a unique name.  TODO: figure out if handling multiple 'classify' plugins is necessary
                 self.classify = plugin.plugin_object
 

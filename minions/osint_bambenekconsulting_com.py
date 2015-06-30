@@ -86,7 +86,8 @@ class PluginOne(IPlugin):
     Verum = None  # the module
     yesterday = pd.DataFrame(columns=("indicator", "context", "date", "source", "key", "threat"))  # Yesterday's data
     today = None  # Today's date
-    shutdown = False
+    shutdown = False  # Used to trigger shutdown of hte minion
+    parent = None  # The parent instance of the verum app object
 
     #  CHANGEME: The init should contain anything to load modules or data files that should be variables of the  plugin object
     def __init__(self):
@@ -101,7 +102,7 @@ class PluginOne(IPlugin):
     #  CHANGEME: interface [type, successful_load, name]
     #  CHANGEME: score [type, successful_load, name, description, cost, speed]
     #  CHANGEME: minion [TBD]
-    def configure(self, verum=None, plugins=None):
+    def configure(self, parent=None):
         """
 
         :param verum: The directory of the verum module 
@@ -129,20 +130,19 @@ class PluginOne(IPlugin):
             return [None, False, NAME, description, cost]
 
         #  Module import success
-        if verum is not None:
-            # Import the app object so that acces app features (such as the storage backend) can be used.
-            print verum  # DEBUG
-            fp, pathname, mod_description = imp.find_module("verum", [verum])
-            self.Verum = imp.load_module("verum", fp, pathname, mod_description)
+        if parent is not None:
+            self.parent = parent
         else:
-            logging.info("'verum' location not supplied to minion configuration function.  Rerun with the location of the verum module specified.")
+            logging.info("Parent verum app instance not passed to minion.  Please rerun, passing the parent object instance to successfully configure.")
             return [plugin_type, False, NAME, description, cost]
 
-        #  Load plugins
-        if plugins is not None:
-            self.app = self.Verum.app(plugins, None)
+        if self.parent.loc is not None:
+            # Import the app object so that acces app features (such as the storage backend) can be used.
+            fp, pathname, mod_description = imp.find_module("verum", [self.parent.loc])
+            self.Verum = imp.load_module("verum", fp, pathname, mod_description)
         else:
-            logging.info("'plugins' location not supplied to minion configuration function.  Rerun with the location of the plugins directory specified.")
+            logging.error("'verum' location not supplied to minion configuration function.  Rerun with the location of the verum module specified.")
+            return [plugin_type, False, NAME, description, cost]
 
         if 'feed' in config_options:
             FEED = config.get('Configuration', 'feed')
@@ -186,7 +186,13 @@ class PluginOne(IPlugin):
     #  -     values of the score assigned to the node for the given topic.
     #  CHANGEME: Minion plugin specifics:
     #  -     [TBD]
-    def minion(self, *args, **xargs):
+    def minion(self,  storage=None, *args, **xargs):
+        self.app = self.Verum.app(self.parent.PluginFolder, None)
+        # set storage
+        if storage is None:
+            storage = self.parent.storage
+        self.app.set_interface(storage)
+
         # Check until stopped
         while not self.shutdown:
             # Check to see if it's the same day, if it is, sleep for a while, otherwise run the import
@@ -245,7 +251,7 @@ class PluginOne(IPlugin):
 
                         # Threat node
                         threat_uri = "class=attribute&key={0}&value={1}".format("malware", threat) 
-                        g.add_node(target_uri, {
+                        g.add_node(threat_uri, {
                             'class': 'attribute',
                             'key': "malware",
                             "value": threat,
@@ -278,7 +284,7 @@ class PluginOne(IPlugin):
                         if CandC:
                             # C2 node
                             c2_uri = "class=attribute&key={0}&value={1}".format("classification", "c2") 
-                            g.add_node(target_uri, {
+                            g.add_node(c2_uri, {
                                 'class': 'attribute',
                                 'key': "classification",
                                 "value": "c2",
@@ -312,8 +318,12 @@ class PluginOne(IPlugin):
                         g = self.Verum.merge_graphs(g, self.app.classify.run({'key': key, 'value': row[1]['indicator'], 'classification': 'malice'}))
 
                         # enrich depending on type
-                        g = self.Verum.merge_graphs(g, self.app.run_enrichments(row[1]['indicator'], key, names=[u'DNS Enrichment', u'TLD Enrichment', u'Maxmind ASN Enrichment', 'IP Whois Enrichment']))
-
+                        try:
+                            g = self.Verum.merge_graphs(g, self.app.run_enrichments(row[1]['indicator'], key, names=[u'DNS Enrichment', u'TLD Enrichment', u'Maxmind ASN Enrichment', 'IP Whois Enrichment']))
+                        except:
+                            logging.info("Enrichment of {0} failed.".format(row[1]['indicator']))
+                            pass
+                            
                         # add to ip list if appropriate
                         if key == "ip":
                             try:
@@ -321,6 +331,9 @@ class PluginOne(IPlugin):
                                 ips.add(self.app.run_enrichments(row[1]['indicator']))
                             except:
                                 pass
+
+                        print g.nodes(data=True)  # DEBUG
+                        print g.edges(data=True)  # DEBUG
 
                         self.app.store_graph(g)
 
