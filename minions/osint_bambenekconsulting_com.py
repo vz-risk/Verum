@@ -209,7 +209,9 @@ class PluginOne(IPlugin):
                 # load the feed into a dataframe line, by, line.  I know it's slow.  
                 for line in feed:
                     if line and line[0] != "#":
-                        df.loc[df.shape[0]] = line.split(",")
+                        l = line.split(",")
+                        if len(l) == 4:
+                            df.loc[df.shape[0]] = l
 
                 # Index([u'indicator', u'context', u'date', u'source', u'key', u'threat'], dtype='object')
                 df = pd.concat([df, pd.DataFrame(df.context.str.split(' used by ',1).tolist(), columns = ['key','threat'])], axis=1)
@@ -320,8 +322,9 @@ class PluginOne(IPlugin):
                         # enrich depending on type
                         try:
                             g = self.Verum.merge_graphs(g, self.app.run_enrichments(row[1]['indicator'], key, names=[u'DNS Enrichment', u'TLD Enrichment', u'Maxmind ASN Enrichment', 'IP Whois Enrichment']))
-                        except:
-                            logging.info("Enrichment of {0} failed.".format(row[1]['indicator']))
+                        except Exception as e:
+                            #print "Enrichment of {0} failed due to {1}.".format(row[1]['indicator'], e)  # DEBUG
+                            logging.info("Enrichment of {0} failed due to {1}.".format(row[1]['indicator'], e))
                             pass
                             
                         # add to ip list if appropriate
@@ -332,11 +335,12 @@ class PluginOne(IPlugin):
                             except:
                                 pass
 
-                        #print g.nodes(data=True)  # DEBUG
-                        #print g.edges(data=True)  # DEBUG
-
-                        self.app.store_graph(g)
-
+                        try:
+                            self.app.store_graph(self.Verum.remove_non_ascii_from_graph(g))
+                        except:
+                            print g.nodes(data=True)  # DEBUG
+                            print g.edges(data=True)  # DEBUG
+                            raise
                 # Do cymru enrichment
                 self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
                 
@@ -360,24 +364,3 @@ class PluginOne(IPlugin):
             self.thread = None  # zero out thread
         else:
             self.shutdown = False  # just dont' iterate.  May take up to (SLEEP_TIME) hours
-
-
-"""
-        #Some Threading stuff
-        # http://stackoverflow.com/questions/7168508/background-function-in-python
-        
-        Do something like this:
-
-        def function_that_downloads(my_args):
-            # do some long download here
-        then inline, do something like this:
-
-        import threading
-        def my_inline_function(some_args):
-            #do some stuff
-            download_thread = threading.Thread(target=function_that_downloads, args=my_args)
-            download_thread.start()
-            #continue doing stuff
-        You may want to check if the thread has finished before going on to other things by calling download_thread.isAlive()
-
-"""

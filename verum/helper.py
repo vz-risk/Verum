@@ -304,6 +304,40 @@ def merge_graphs(g1, g2):
     return g
 
 
+def removeNonAscii(s): return u"".join(i for i in s if ord(i)<128)
+
+
+def remove_non_ascii_from_graph(g):
+    """ networkx graph -> networkx graph
+
+    :param g: A networkx graph
+    :return: a networkx graph with nonAscii removed from all node and edge attributes
+    """
+    # ascii safe node key and value
+    for node, data in g.nodes(data=True):
+        for attr in data.keys():
+            data[attr] = removeNonAscii(data[attr])
+        g.node[node] = data
+
+    if type(g) in [nx.classes.multidigraph.MultiDiGraph, nx.classes.multigraph.MultiGraph]:
+        for edge in g.edges(data=True, keys=True):
+            edge_attr = edge[3]
+            for attr in edge_attr:
+                if type(edge_attr[attr]) is str:
+                    edge_attr[attr] = removeNonAscii(edge_attr[attr])
+            g.edge[edge[0]][edge[1]][edge[2]] = edge_attr
+    else:
+        for edge in g.edges(data=True):
+            edge_attr = edge[2]
+            for attr in edge_attr:
+                if type(edge_attr[attr]) is str:
+                    edge_attr[attr] = removeNonAscii(edge_attr[attr])
+            g.edge[edge[0]][edge[1]] = edge_attr
+
+
+    # return the safed node
+    return g
+
 ## MAIN LOOP EXECUTION
 def main():
     logging.info('Beginning main loop.')
