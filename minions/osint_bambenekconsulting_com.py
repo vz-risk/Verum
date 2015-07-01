@@ -356,7 +356,10 @@ class PluginOne(IPlugin):
         self.thread.start()
 
     def isAlive(self):
-        return self.thread.isAlive()
+        if self.thread is None:
+            return False
+        else:
+            return self.thread.isAlive()
 
 
     def stop(self, force=True):
