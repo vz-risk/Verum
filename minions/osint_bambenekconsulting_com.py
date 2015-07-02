@@ -342,7 +342,11 @@ class PluginOne(IPlugin):
                             print g.edges(data=True)  # DEBUG
                             raise
                 # Do cymru enrichment
-                self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
+                try:
+                    self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
+                except:
+                    logging.info("Cymru enrichment of {0} IPs failed.".format(len(ips)))
+                    pass
                 
                 # Copy today's data to yesterday
                 self.yesterday = df
