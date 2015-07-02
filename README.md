@@ -189,7 +189,7 @@ We want to classify all these domains and IPs as malicious:
 ```
 # Classify all IPs and Domains as Malicious
 for ip in ips + ips2:
-    verum.store_graph(verum.classify.run({'key': 'ip', 'value': ip, 'classification': 'malice'))
+    verum.store_graph(verum.classify.run({'key': 'ip', 'value': ip, 'classification': 'malice'}))
 for domain in domains + domains2:
     verum.store_graph(verum.classify.run({'key': 'domain', 'value': domain, 'classification': 'malice'}))
 ```
