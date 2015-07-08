@@ -390,25 +390,6 @@ class app():
         else:
             raise ValueError("Requested interface {0} not configured. Options are {1}.".format(interface, configured_storage))
 
-    '''
-    # I don't think I need
-    def load_minions(self):
-        # Loop round the plugins and print their names.
-        cur = self.db.cursor()
-
-        # Clear tables
-        cur.execute("""DELETE FROM minion""")
-
-        for plugin in self.plugins.getAllPlugins():
-            if plugin_config[0] == 'minion':
-                plugin_config = plugin.plugin_object.configure(self)
-                cur.execute("""INSERT INTO minion VALUES (?, ?, ?, ?)""", (plugin_config[2], # Name
-                                                                           int(plugin_config[1]), # Enabled
-                                                                           plugin_config[3], # Descripton
-                                                                           plugin_config[4]) # Speed 
-                )
-    '''
-
     def get_minions(self, cost=10000, configured=None):
         """
 

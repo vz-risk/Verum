@@ -154,38 +154,6 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, description, cost]
 
 
-    #  CHANGEME: The correct type of execution function must be defined for the type of plugin
-    #  CHANGEME: enrichment: "run(<thing to enrich>, inputs, start_time, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  CHANGEME: interface: enrich(graph, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  CHANGEME:            query(topic, max_depth, config, dont_follow, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  CHANGEME: score: score(subgraph, topic, any other plugin-specific attributes-MUST HAVE DEFAULTS)
-    #  CHANGEME: minion [TBD] 
-    #  CHANGEME: Enrichment plugin specifics:
-    #  -     Created nodes/edges must follow http://blog.infosecanalytics.com/2014/11/cyber-attack-graph-schema-cags-20.html
-    #  -     The enrichment should include a node for the <thing to enrich>
-    #  -     The enrichment should include a node for the enrichment which is is statically defined & key of "enrichment"
-    #  -     An edge should exist from <thing to enrich> to the enrichment node, created at the end after enrichment
-    #  -     Each enrichment datum should have a node
-    #  -     An edge should exist from <thing to enrich> to each enrichment datum
-    #  -     The run function should then return a networkx directed multi-graph including the nodes and edges
-    #  CHANGEME: Interface plugin specifics:
-    #  -     In the most efficient way possible, merge nodes and edges into the storage medium
-    #  -     Merger of nodes should be done based on matching key & value.
-    #  -     URI should remain static for a given node.
-    #  -     Start time should be updated to the sending graph
-    #  -     Edges should be added w/o attempts to merge with edges in the storage back end
-    #  -     When adding nodes it is highly recommended to keep a node-to-storage-id mapping with a key of the node
-    #  -       URI.  This will assist in bulk-adding the edges.
-    #  -     Query specifics of interface plugins:
-    #  -     In the most efficient way possible retrieve and return the merged subgraph (as a networkx graph) including all nodes and 
-    #  -     edges within the max_distance from any node in the topic graph from the storage backend graph.
-    #  -     As a default, ['enrichment', 'classification'] should not be followed.
-    #  -     The query function must add a 'topic_distance' property to all nodes.
-    #  CHANGEME: Score plugin specifics:
-    #  -     Scoring plugins should take a topic and networkx (sub)graph and return a dictionary keyed with the node (name) and with
-    #  -     values of the score assigned to the node for the given topic.
-    #  CHANGEME: Minion plugin specifics:
-    #  -     [TBD]
     def minion(self,  storage=None, *args, **xargs):
         self.app = self.Verum.app(self.parent.PluginFolder, None)
         # set storage

@@ -42,8 +42,6 @@ fp, pathname, description = imp.find_module("verum", [LOCATION])
 Verum = imp.load_module("verum", fp, pathname, description)
 # Load plugins. NOTE: if your directory is wrong, you won't receive an error but will see no individual plugins listed as successfully configured.
 verum = Verum.app("~/Documents/Development/verum/plugins", "~/Documents/Development/verum/minions")
-# Enable the minions
-verum.load_minions()
 # display loaded plugins directly using yapsy
 for plugin in verum.plugins.getAllPlugins():
     print plugin.name
