@@ -1,0 +1,18 @@
+[Core]
+Name = OSINT Bambenek Consulting V2
+Module = osint_bambenekconsulting_com_v2
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.2
+Website = https://github.com/vz-risk/Verum
+Description = Reads the feed at http://osint.bambenekconsulting.com/feeds/c2-masterlist.txt and import it into the intelligence graph.
+
+[Configuration]
+Type = minion
+Feed = http://osint.bambenekconsulting.com/feeds/c2-masterlist.txt
+cost = 4
+
+[Log]
+level = debug
+# file = ./logfile.log
