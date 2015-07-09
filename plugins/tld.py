@@ -131,8 +131,9 @@ class PluginOne(IPlugin):
         else:
             time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-            ext = tldextract.extract(domain)
-            g = nx.MultiDiGraph()
+        ext = tldextract.extract(domain)
+        
+        g = nx.MultiDiGraph()
 
         # Get or create Domain node
         domain_uri = "class=attribute&key={0}&value={1}".format("domain", domain)
