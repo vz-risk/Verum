@@ -77,7 +77,13 @@ if config.has_section('Log'):
         LOGLEVEL = config.get('Log', 'level')
     if 'file' in config.options('Log'):
         LOGFILE = config.get('Log', 'file')
+    else:
+        LOGFILE = None
 
+if LOGFILE:
+    logging.basicConfig(filename=LOGFILE, level=LOGLEVEL)
+else:
+    logging.basicConfig(level=LOGLEVEL)
 
 ## EXECUTION
 class PluginOne(IPlugin):
@@ -338,12 +344,11 @@ class PluginOne(IPlugin):
                                         edge_attr["uri"] = edge_uri
                                         g.add_edge(ns_uri, ns_ip_uri, edge_uri, edge_attr)
 
-
                             # otherwise we'll attach each IP to each NS
                             else:
                                 for ip in row[3]:
                                     # Create NS IP node
-                                    ns_ip_uri = "class=attribute&key={0}&value={1}".format("ip", row[3][i*len(row[3])/len(row[2]) + j]) 
+                                    ns_ip_uri = "class=attribute&key={0}&value={1}".format("ip", ip) 
                                     g.add_node(ns_ip_uri, {
                                         'class': 'attribute',
                                         'key': "ip",
@@ -383,14 +388,14 @@ class PluginOne(IPlugin):
                                     g = self.Verum.merge_graphs(g, self.app.run_enrichments(domain, "domain", names=['TLD Enrichment']))
                                     g = self.Verum.merge_graphs(g, self.app.run_enrichments(domain, "domain", names=['IP Whois Enrichment']))
                                 except Exception as e:
-                                    #print "Enrichment of {0} failed due to {1}.".format(row[1]['indicator'], e)  # DEBUG
                                     logging.info("Enrichment of {0} failed due to {1}.".format(domain, e))
+                                    #print "Enrichment of {0} failed due to {1}.".format(domain, e)  # DEBUG
+                                    #raise
                                     pass
                             for ip in row[1] + row[3]:
                                 try:
                                     g = self.Verum.merge_graphs(g, self.app.run_enrichments(ip, "ip", names=[u'Maxmind ASN Enrichment']))
                                 except Exception as e:
-                                    #print "Enrichment of {0} failed due to {1}.".format(row[1]['indicator'], e)  # DEBUG
                                     logging.info("Enrichment of {0} failed due to {1}.".format(ip, e))
                                     pass
 
@@ -401,18 +406,29 @@ class PluginOne(IPlugin):
                                 print g.edges(data=True)  # DEBUG
                                 raise
 
-
-                            if len(ips) >= 50:
-                                # Do cymru enrichment
-                                try:
-                                    self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
-                                except:
-                                    logging.info("Cymru enrichment of {0} IPs failed.".format(len(ips)))
-                                    pass
-                            ips = set()
                         except Exception as e:
                             print row
                             print e
+                            raise
+
+                # Do cymru enrichment
+                # validate IPs
+                ips2 = set()
+                for ip in ips:
+                    try:
+                        _ = ipaddress.ip_address(unicode(ip))
+                        ips2.add(ip)
+                    except:
+                        pass
+                ips = ips2
+                del(ips2)
+                try:
+                    self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
+                    #print "Cymru enrichment complete."
+                except Exception as e:
+                    logging.info("Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e))
+                    #print "Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e)  # DEBUG
+                    pass
 
                 # Copy today's date to today
                 self.today = datetime.utcnow()

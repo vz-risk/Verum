@@ -241,7 +241,7 @@ Start a simple minion which imports and enriches a threat intelligence feed.
 # List configured minions
 verum.get_minions()
 # Start a minion
-verum.start_minions([u'OSINT Bambenek Consulting'])
+verum.start_minions([u'OSINT Bambenek Consulting V2'])
 # Check if it's started
 verum.get_running_minions()
 ```
