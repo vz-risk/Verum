@@ -61,6 +61,8 @@ import ipaddress  # for validating ip addresses
 import time  # for sleep
 import threading  # import threading so minion doesn't block the app
 import imp  # Importing imp to import verum
+import copy
+import tldextract  # used for validating domains
 
 ## SETUP
 loc = inspect.getfile(inspect.currentframe())
@@ -202,6 +204,34 @@ class PluginOne(IPlugin):
                             row[4] = row[4][26:-22]  # malware
                             # row[5] -> source
 
+                            # Validate data in row
+                            ext = tldextract.extract(row[0])
+                            if not ext.domain or not ext.suffix:
+                                # domain is not legitimate
+                                next
+                            l = list()
+                            for ip in row[1]:
+                                try:
+                                    _ = ipaddress.ip_address(unicode(ip))
+                                    l.append(ip)
+                                except:
+                                    pass
+                            row[1] = copy.deepcopy(l)
+                            l = list()
+                            for domain in row[2]:
+                                ext = tldextract.extract(domain)
+                                if ext.domain and ext.suffix:
+                                    l.append(domain)
+                            row[2] = copy.deepcopy(l)
+                            l = list()
+                            for ip in row[3]:
+                                try:
+                                    _ = ipaddress.ip_address(unicode(ip))
+                                    l.append(ip)
+                                except:
+                                    pass
+                            row[3] = copy.deepcopy(l)
+
                             # add the ips to the set of ips
                             ips = ips.union(set(row[1])).union(set(row[3]))
 
@@ -309,7 +339,7 @@ class PluginOne(IPlugin):
                                 g.add_edge(target_uri, ns_uri, edge_uri, edge_attr)
 
                             # if the number of NS IPs is a multiple of the # of NS's, we'll aassume each NS gets some of the ips
-                            if len(row[3]) % len(row[2]) == 0:
+                            if len(row[2]) and len(row[3]) % len(row[2]) == 0:
                                 for i in range(len(row[2])):
                                     for j in range(len(row[3])/len(row[2])):
                                         # Create NS IP node
