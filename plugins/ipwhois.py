@@ -63,6 +63,7 @@ import dateutil  # to parse variable time strings
 import uuid
 import inspect
 import socket
+import tldextract
 try:
     from ipwhois import IPWhois
     module_import_success = True
@@ -162,7 +163,7 @@ class PluginOne(IPlugin):
                 emails = net['misc_emails'].split("\n")
                 record[9] = emails[0]
 
-            self.enrich_record(record, start_time)
+            return self.enrich_record(record, start_time)
 
 
     def enrich_record(self, record, start_time=""):
@@ -196,11 +197,11 @@ class PluginOne(IPlugin):
         try:
             record_time = dateutil.parser.parse(record[1]).strftime("%Y-%m-%dT%H:%M:%SZ")
         except:
-            raise ValueError("Record date in wrong format.")
+            raise ValueError("Record date {0} in wrong format.".format(record[1]))
         try:
             _ = tldextract.extract(record[2])
         except:
-            raise ValueError("Record domain is not valid.")
+            raise ValueError("Record domain {0} is not valid.".format(record[2]))
         if type(record[3]) in (int, str, type(None)) and \
             type(record[4]) in (int, str, type(None)) and \
             type(record[5]) in (int, str, type(None)) and \

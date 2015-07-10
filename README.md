@@ -177,8 +177,7 @@ verum.store_graph(verum.run_enrichments(ips + ips2, 'ip', names=[u'Cymru Enrichm
 
 Now open `http://locahost:7474/` in a browser and enter the Cypher Query:
 ```
-MATCH (n:attribute) 
-WHERE n.key = 'ip' and n.value = "98.124.198.1" 
+MATCH (n:attribute {key:'ip', value:"98.124.198.1"}) 
 RETURN n;
 ```
 You can then visually explore the graph associated with that IP.
