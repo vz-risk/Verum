@@ -283,7 +283,7 @@ class PluginOne(IPlugin):
                     dest_uri = "class={0}&key={1}&value={2}".format(edge_list[0].end_node.properties['attribute'], edge_list[0].end_node.properties['key'], edge_list[0].end_node.properties['value'])
 
                 logging.debug("Removing {0} edges from node {1} to {2}.".format(len(edge_list[1:]), source_uri, dest_uri))
-                print "Removing {0} edges from node {1} to {2}.".format(len(edge_list[1:]), source_uri, dest_uri)  # DEBUG
+                #print "Removing {0} edges from node {1} to {2}.".format(len(edge_list[1:]), source_uri, dest_uri)  # DEBUG
 
                 for edge in edge_list[1:]:
                     # keep earliest time as start
@@ -307,7 +307,7 @@ class PluginOne(IPlugin):
                     edge_list[0].push()
 
                 logging.debug("Keeping edge {0} from node {1} to node {2}.".format(edge_list[0].uri, source_uri, dest_uri))
-                print "Keeping edge {0} from node {1} to node {2}.".format(edge_list[0].uri, source_uri, dest_uri)  # DEBUG
+                #print "Keeping edge {0} from node {1} to node {2}.".format(edge_list[0].uri, source_uri, dest_uri)  # DEBUG
 
             #  Sleep to slow it down
             sleep(self.sleep_time)
@@ -325,7 +325,7 @@ class PluginOne(IPlugin):
                 logging.debug("Edge consolidation random walk didn't jumped.")
 
             logging.info("Next node to consolidate edges for is class: {0}, key: {1}, value: {2}".format(node.properties['class'], node.properties['key'], node.properties['value']))
-            print "Next to consolidate edges for node is class: {0}, key: {1}, value: {2}".format(node.properties['class'], node.properties['key'], node.properties['value'])  # DEBUG
+            #print "Next to consolidate edges for node is class: {0}, key: {1}, value: {2}".format(node.properties['class'], node.properties['key'], node.properties['value'])  # DEBUG
 
     def start(self, *args, **xargs):
         self.thread = threading.Thread(target=self.minion, *args, **xargs)

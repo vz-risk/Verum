@@ -438,29 +438,31 @@ class PluginOne(IPlugin):
                                 print g.edges(data=True)  # DEBUG
                                 raise
 
+                            # Do cymru enrichment
+                            if len(ips) >= 50:
+                                # validate IPs
+                                ips2 = set()
+                                for ip in ips:
+                                    try:
+                                        _ = ipaddress.ip_address(unicode(ip))
+                                        ips2.add(ip)
+                                    except:
+                                        pass
+                                ips = ips2
+                                del(ips2)
+                                try:
+                                    self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
+                                    #print "Cymru enrichment complete."
+                                except Exception as e:
+                                    logging.info("Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e))
+                                    #print "Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e)  # DEBUG
+                                    pass
+                                ips = set()
+
                         except Exception as e:
                             print row
                             print e
                             raise
-
-                # Do cymru enrichment
-                # validate IPs
-                ips2 = set()
-                for ip in ips:
-                    try:
-                        _ = ipaddress.ip_address(unicode(ip))
-                        ips2.add(ip)
-                    except:
-                        pass
-                ips = ips2
-                del(ips2)
-                try:
-                    self.app.store_graph(self.app.run_enrichments(ips, 'ip', names=[u'Cymru Enrichment']))
-                    #print "Cymru enrichment complete."
-                except Exception as e:
-                    logging.info("Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e))
-                    #print "Cymru enrichment of {0} IPs failed due to {1}.".format(len(ips), e)  # DEBUG
-                    pass
 
                 # Copy today's date to today
                 self.today = datetime.utcnow()

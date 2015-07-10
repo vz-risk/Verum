@@ -17,7 +17,7 @@ sleep_time = 3
 
 [neo4j]
 host = localhost
-port = 8474
+port = 7474
 username = neo4j
 password = neo4j1
 

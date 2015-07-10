@@ -1,0 +1,18 @@
+[Core]
+Name = Alexa Top 1M
+Module = alexa_1m
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Reads the alexa 1M and imports it into the intelligence graph.
+
+[Configuration]
+Type = minion
+Feed = http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
+cost = 4
+
+[Log]
+level = debug
+# file = ./logfile.log
