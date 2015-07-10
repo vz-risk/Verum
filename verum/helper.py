@@ -304,7 +304,7 @@ def merge_graphs(g1, g2):
     return g
 
 
-def removeNonAscii(s): return u"".join(i for i in s if ord(i)<128)
+def removeNonAscii(s): return u"".join(i for i in s if ord(i)<128).encode('utf8')
 
 
 def remove_non_ascii_from_graph(g):

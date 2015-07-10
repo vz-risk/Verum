@@ -242,9 +242,15 @@ class PluginOne(IPlugin):
                     else:
                         dest_uri = "class={0}&key={1}&value={2}".format(rel.end_node.properties['attribute'], rel.end_node.properties['key'], rel.end_node.properties['value'])
 
+                    # Remove non-ascii as it gumms up uuid.
+                    # NOTE: This shouldn't effect anything as it's just for the key in the edges dictionary
+                    source_uri = self.Verum.removeNonAscii(source_uri)
+                    dest_uri = self.Verum.removeNonAscii(dest_uri)
+
                     # Edge URI
                     source_hash = uuid.uuid3(uuid.NAMESPACE_URL, source_uri)
                     dest_hash = uuid.uuid3(uuid.NAMESPACE_URL, dest_uri)
+
                     edge_uri = "source={0}&destionation={1}".format(str(source_hash), str(dest_hash))
                     rel_chain = "relationship"
                     while rel_chain in rel.properties:
@@ -281,15 +287,22 @@ class PluginOne(IPlugin):
 
                 for edge in edge_list[1:]:
                     # keep earliest time as start
-                    edge_time = datetime.strptime(edge.properties['start_time'], "%Y-%m-%dT%H:%M:%SZ")
-                    if 'start_time' in edge.properties and time > edge_time:
-                        time = edge_time
+                    try:
+                        edge_time = datetime.strptime(edge.properties['start_time'], "%Y-%m-%dT%H:%M:%SZ")
+                        if 'start_time' in edge.properties and time > edge_time:
+                            time = edge_time
+                    except ValueError:  # The time on the node wasn't legit
+                        pass
 
                     #  remove all but one node of each group
                     edge.delete()
 
                 # Update time on remaining node
-                if 'start_time' not in edge_list[0].properties or time < datetime.strptime(edge_list[0].properties['start_time'], "%Y-%m-%dT%H:%M:%SZ"):
+                try:
+                    edge_time = datetime.strptime(edge_list[0].properties['start_time'], "%Y-%m-%dT%H:%M:%SZ")
+                except:
+                    edge_time = datetime.utcnow()
+                if 'start_time' not in edge_list[0].properties or time < edge_time:
                     edge_list[0].properties['start_time'] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
                     edge_list[0].push()
 
