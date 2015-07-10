@@ -161,9 +161,7 @@ class PluginOne(IPlugin):
         return [plugin_type, True, NAME, description, cost]
 
 
-    def minion(self,  storage=None, *args, **xargs):
-        self.shutdown = False
-        
+    def minion(self,  storage=None, *args, **xargs):        
         self.app = self.Verum.app(self.parent.PluginFolder, None)
         # set storage
         if storage is None:
@@ -471,6 +469,7 @@ class PluginOne(IPlugin):
                 print "Daily {0} enrichment complete.".format(NAME)  # DEBUG
 
     def start(self, *args, **xargs):
+        self.shutdown = False
         self.thread = threading.Thread(target=self.minion, *args, **xargs)
         self.thread.start()
 
