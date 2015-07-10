@@ -51,6 +51,7 @@ from datetime import datetime # timedelta imported above
 import uuid
 import ConfigParser
 import inspect
+import threading
 """
 try:
     import <SOME UNIQUE MODULE>
@@ -80,6 +81,7 @@ if config.has_section('Log'):
 ## EXECUTION
 class PluginOne(IPlugin):
     inputs = None
+    shutdown = False  # Used to trigger shutdown of a minion
 
     #  CHANGEME: The init should contain anything to load modules or data files that should be variables of the  plugin object
     def __init__(self):
@@ -236,7 +238,10 @@ class PluginOne(IPlugin):
         self.thread.start()
 
     def isAlive(self):
-        return self.thread.isAlive()
+        if self.thread is None:
+            return False
+        else:
+            return self.thread.isAlive()
 
     def stop(self, force=True):
         if force:

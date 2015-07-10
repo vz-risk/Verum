@@ -249,8 +249,8 @@ verum.get_running_minions()
 Check the number of nodes.  It should be increasing.
 ```
 start n=node(*)
-match n
-return count(n)
+match n-[r]-()
+return count(distinct n), count(distinct r)
 ```
 
 

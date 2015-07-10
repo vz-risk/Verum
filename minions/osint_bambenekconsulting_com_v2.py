@@ -93,7 +93,7 @@ class PluginOne(IPlugin):
     app = None  # The object instance
     Verum = None  # the module
     today = datetime.strptime("1970", "%Y")  # Today's date
-    shutdown = False  # Used to trigger shutdown of hte minion
+    shutdown = False  # Used to trigger shutdown of the minion
     parent = None  # The parent instance of the verum app object
 
     #  CHANGEME: The init should contain anything to load modules or data files that should be variables of the  plugin object
@@ -175,6 +175,8 @@ class PluginOne(IPlugin):
             if delta.days <= 0:
                 time.sleep(SLEEP_TIME)
             else:
+                logging.info("Starting daily {0} enrichment.".format(NAME))
+
                 # Get the file
                 r = requests.get(FEED)
 
@@ -463,6 +465,8 @@ class PluginOne(IPlugin):
                 # Copy today's date to today
                 self.today = datetime.utcnow()
 
+                logging.info("Daily {0} enrichment complete.".format(NAME))
+                print "Daily {0} enrichment complete.".format(NAME)  # DEBUG
 
     def start(self, *args, **xargs):
         self.thread = threading.Thread(target=self.minion, *args, **xargs)
