@@ -1,0 +1,26 @@
+[Core]
+Name = Neo4j Edge Consolidator
+Module = edge_consolidator
+
+[Documentation]
+Author = Gabriel Bassett
+Version = 0.1
+Website = https://github.com/vz-risk/Verum
+Description = Randomly walks the graph.  At each node, it consolidates edges by URI.
+
+[Configuration]
+Type = minion
+Jump = 0.9
+Cost = 2
+# will sleep sleep_time seconds inbetween nodes to slow things down
+sleep_time = 3
+
+[neo4j]
+host = localhost
+port = 8474
+username = neo4j
+password = neo4j1
+
+[Log]
+level = debug
+# file = ./logfile.log
