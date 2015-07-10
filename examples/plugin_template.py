@@ -231,6 +231,8 @@ class PluginOne(IPlugin):
     #  -      force stop option which removes the thread object
     #  -     isAlive() calls the thread isAlive() function and returns the status
     def minion(self,  *args, **xargs):
+        self.shutdown = False
+        
         pass  # TODO: Write the function which will be threaded to form the minion
 
     def start(self, *args, **xargs):

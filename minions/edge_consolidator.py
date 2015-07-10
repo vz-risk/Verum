@@ -203,6 +203,8 @@ class PluginOne(IPlugin):
     #  -      force stop option which removes the thread object
     #  -     isAlive() calls the thread isAlive() function and returns the status
     def minion(self,  *args, **xargs):
+        self.shutdown = False
+
         # Get graph
         neo_graph = py2neoGraph(self.neo4j_config)
 
@@ -267,18 +269,17 @@ class PluginOne(IPlugin):
 
             for edge_uri in edges:
                 edge_list = list(edges[edge_uri])
-                
+
+                # DST URI
+                if 'uri' in edge_list[0].end_node.properties:
+                    dest_uri = edge_list[0].end_node.properties['uri']
+                else:
+                    dest_uri = "class={0}&key={1}&value={2}".format(edge_list[0].end_node.properties['attribute'], edge_list[0].end_node.properties['key'], edge_list[0].end_node.properties['value'])
+
                 logging.debug("Removing {0} edges from node {1} to {2}.".format(len(edge_list[1:]), source_uri, dest_uri))
                 print "Removing {0} edges from node {1} to {2}.".format(len(edge_list[1:]), source_uri, dest_uri)  # DEBUG
 
                 for edge in edge_list[1:]:
-
-                    # DST URI
-                    if 'uri' in edge_list[0].end_node.properties:
-                        dest_uri = edge_list[0].end_node.properties['uri']
-                    else:
-                        dest_uri = "class={0}&key={1}&value={2}".format(edge_list[0].end_node.properties['attribute'], edge_list[0].end_node.properties['key'], edge_list[0].end_node.properties['value'])
-
                     # keep earliest time as start
                     edge_time = datetime.strptime(edge.properties['start_time'], "%Y-%m-%dT%H:%M:%SZ")
                     if 'start_time' in edge.properties and time > edge_time:

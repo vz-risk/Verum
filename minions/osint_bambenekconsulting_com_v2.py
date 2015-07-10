@@ -162,6 +162,8 @@ class PluginOne(IPlugin):
 
 
     def minion(self,  storage=None, *args, **xargs):
+        self.shutdown = False
+        
         self.app = self.Verum.app(self.parent.PluginFolder, None)
         # set storage
         if storage is None:
