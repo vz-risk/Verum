@@ -305,8 +305,8 @@ class PluginOne(IPlugin):
                         "TOPICS": list(topic_ids),
                         "DONT_FOLLOW": dont_follow}
             #print cypher, attr  # DEBUG
-            for record in neo_graph.cypher.stream(cypher, attr):  # Prefer streaming to execute, if it works
-#            for record in neo_graph.cypher.execute(cypher, attr):
+#            for record in neo_graph.cypher.stream(cypher, attr):  # Prefer streaming to execute, if it works
+            for record in neo_graph.cypher.execute(cypher, attr):
                 #print record  # DEBUG
                 for node in record.nodes:
                     attr = dict(node.properties)
