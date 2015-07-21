@@ -293,10 +293,11 @@ class PluginOne(IPlugin):
                             time = edge_time
                     except ValueError:  # The time on the node wasn't legit
                         pass
-
-                    #  remove all but one node of each group
-                    edge.delete()
-
+                    try:  # sometimes the edge is no longer there.  Better to pass than fail.
+                        #  remove all but one node of each group
+                        edge.delete()
+                    except:
+                        pass
                 # Update time on remaining node
                 try:
                     edge_time = datetime.strptime(edge_list[0].properties['start_time'], "%Y-%m-%dT%H:%M:%SZ")

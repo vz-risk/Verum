@@ -30,7 +30,7 @@ under the License.
 
 """.format(__author__)
 # PRE-USER SETUP
-pass
+from datetime import timedelta
 
 ########### NOT USER EDITABLE ABOVE THIS POINT #################
 
@@ -40,6 +40,7 @@ PLUGIN_CONFIG_FILE = "alexa_1M.yapsy-plugin"
 NAME = "Alexa Top 1M"
 FEED = "http://s3.amazonaws.com/alexa-static/top-1m.csv.zip"
 SLEEP_TIME = 14400  # 4 hours in seconds
+REFRESH_TIME = timedelta(days=7)
 
 ########### NOT USER EDITABLE BELOW THIS POINT #################
 
@@ -171,8 +172,9 @@ class PluginOne(IPlugin):
         # Check until stopped
         while not self.shutdown:
             # Check to see if it's the same day, if it is, sleep for a while, otherwise run the import
-            delta = datetime.utcnow() - self.today
-            if delta.days <= 0:
+#            delta = datetime.utcnow() - self.today
+#            if delta.days <= 0:
+            if datatime.utcnow() <= self.today + REFRESH_TIME:
                 time.sleep(SLEEP_TIME)
             else:
                 logging.info("Starting daily {0} enrichment.".format(NAME))
