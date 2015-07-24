@@ -287,24 +287,11 @@ class PluginOne(IPlugin):
 
         # Add nodes at depth 1  (done separately as it doesn't include the intermediary
         nodes = dict()
-        if max_depth > 0:
-            if max_depth == 1:
-                cypher = ("path=MATCH (topic)-[rel:describedBy|influences]-(node: attribute)"
-                          "WHERE id(topic) IN {TOPICS}"
-                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes ")
-                attr = {"TOPICS":list(topic_ids)}
-            else:
-                cypher = ("MATCH path=(topic: attribute)-[rel:describedBy|influences]-(node: attribute) "
-                          "WHERE id(topic) IN {TOPICS} "
-                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes "
-                          "UNION "
-                          "MATCH path=(topic: attribute)-[rel1: describedBy|influences]-(intermediate: attribute)-[rel2: describedBy|influences]-(node: attribute) "
-                          "WHERE id(topic) IN {TOPICS} AND NOT intermediate.key in {DONT_FOLLOW} and length(path) <= {MAX_DEPTH} "
-                          "RETURN DISTINCT extract(r IN rels(path) | r) as rels, extract(n IN nodes(path) | n) as nodes ")
-                attr = {"MAX_DEPTH": max_depth,
-                        "TOPICS": list(topic_ids),
-                        "DONT_FOLLOW": dont_follow}
-            #print cypher, attr  # DEBUG
+        if max_depth > 0 and len(topic_ids) > 0:  # no depth or no topicID means no subgraph
+            cypher = self.build_query(max_depth)
+            attr = {"TOPICS": list(topic_ids),
+                    "DONT_FOLLOW": dont_follow}
+            print cypher, attr  # DEBUG
 #            for record in neo_graph.cypher.stream(cypher, attr):  # Prefer streaming to execute, if it works
             for record in neo_graph.cypher.execute(cypher, attr):
                 #print record  # DEBUG
@@ -379,3 +366,28 @@ class PluginOne(IPlugin):
 
         # Return the dict
         return min_dist
+
+    def build_query(self, max_depth):
+        # Get the topic (depth 0)
+        i = 0
+        cypher = ( "MATCH (topic:attribute) \n"
+                   "WHERE id(topic) IN {TOPIC} \n"
+                   "WITH topic as src, collect(topic) as nodes0 \n")
+        # Get the first depth (where we don't get any relationships carried through
+        if max_depth > 0:
+            i = 1
+            cypher += ("MATCH (src)-[r:describedBy|influences]-(dst: attribute) \n"
+                       "WHERE NOT src.key IN {2} AND NOT dst.key IN {2} \n"
+                       "WITH DISTINCT nodes{0} + collect(dst) as nodes{1}, collect(r) as rels{1}, dst as src \n".format(i-1, i, "{DONT_FOLLOW}"))
+        # Get Nodes at each depth w/o following any DONT_FOLLOWS
+        for i in range(2, max_depth+1):
+            cypher += ("MATCH (src)-[r:describedBy|influences]-(dst: attribute) \n"
+                       "WHERE NOT src.key IN {2} AND NOT dst.key IN {2} \n"
+                       "WITH DISTINCT nodes{0} + collect(dst) as nodes{1}, rels{0} + collect(r) as rels{1}, dst as src \n".format(i-1, i, "{DONT_FOLLOW}"))
+        # Add the DONT_FOLLOWs in
+        cypher += ("UNWIND nodes{0} as n \n"
+                   "WITH n, nodes{0}, rels{0} \n"
+                   "MATCH n-[r:describedBy|influences]->(m) \n"
+                   "WHERE m.key in {1} \n"
+                   "RETURN nodes{0} + collect(m) as nodes, rels{0} + collect(r) as rels".format(i, "{DONT_FOLLOW}"))
+        return cypher
