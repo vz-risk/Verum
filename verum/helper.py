@@ -243,29 +243,29 @@ def compare_classifications(scores, node1, node2=None, output="print"):
                 print "The ratio of node 1 ({0}:{1}) to the median ({2}) is {3}:{4}.".format(node1['key'],
                                                                                              node1['value'],
                                                                                              node2_score,
-                                                                                             node1_score/float(node1_score),
-                                                                                             node2_score/float(node1_score))
+                                                                                             round(node1_score/float(node1_score), 4),
+                                                                                             round(node2_score/float(node1_score), 4))
             else:
                 print "The ratio of node 1 ({0}:{1}) to the median ({2}) is {3}:{4}.".format(node1['key'],
                                                                                              node1['value'],
                                                                                              node2_score,
-                                                                                             node1_score/float(node2_score),
-                                                                                             node2_score/float(node2_score))   
+                                                                                             round(node1_score/float(node2_score), 4),
+                                                                                             round(node2_score/float(node2_score), 4))   
         else:
             if larger == "node2":
                 print "The ratio of node 1 ({0}:{1}) to node 2 ({2}:{3}) is {4}:{5}.".format(node1['key'],
                                                                                              node1['value'],
                                                                                              node2['key'],
                                                                                              node2['value'],
-                                                                                             node1_score/float(node1_score),
-                                                                                             node2_score/float(node1_score))
+                                                                                             round(node1_score/float(node1_score), 4),
+                                                                                             round(node2_score/float(node1_score), 4))
             else:
                 print "The ratio of node 1 ({0}:{1}) to node 2 ({2}:{3}) is {4}:{5}.".format(node1['key'],
                                                                                              node1['value'],
                                                                                              node2['key'],
                                                                                              node2['value'],
-                                                                                             node1_score/float(node2_score),
-                                                                                             node2_score/float(node2_score))        
+                                                                                             round(node1_score/float(node2_score), 4),
+                                                                                             round(node2_score/float(node2_score), 4))        
     else:
         if larger == "node2":
             return {"node1": node1_score/float(node1_score), "node2":node2_score/float(node1_score)}
@@ -273,7 +273,7 @@ def compare_classifications(scores, node1, node2=None, output="print"):
             return {"node1": node1_score/float(node2_score), "node2":node2_score/float(node2_score)}
 
 
-def score_percentile(scores, node1, output="print"):
+def score_percentile(scores, node, output="print"):
     """
 
     :param scores: dictionary keyed by nodes and values of scores
@@ -281,12 +281,12 @@ def score_percentile(scores, node1, output="print"):
     :param output: string representing how to output the data.  "print" to print it, dictionary otherwise
     :return: the percentile the node is in.  Higher means more likely.ff
     """
-    node1_uri = "class={0}&key={1}&value={2}".format(node1['class'], node1['key'], node1['value'])
+    node_uri = "class={0}&key={1}&value={2}".format(node['class'], node['key'], node['value'])
 
-    p =stats.percentileofscore(scores.values(), scores[node1_uri])
+    p =stats.percentileofscore(scores.values(), scores[node_uri])
 
     if output == "print":
-        print "The percentile of the node is {0}.".format(p)
+        print "The percentile of the node is {0}.".format(round(p, 4))
     else:
         return p
 
