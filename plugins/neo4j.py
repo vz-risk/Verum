@@ -291,7 +291,7 @@ class PluginOne(IPlugin):
             cypher = self.build_query(max_depth)
             attr = {"TOPICS": list(topic_ids),
                     "DONT_FOLLOW": dont_follow}
-            print cypher, attr  # DEBUG
+            #print cypher, attr  # DEBUG
 #            for record in neo_graph.cypher.stream(cypher, attr):  # Prefer streaming to execute, if it works
             for record in neo_graph.cypher.execute(cypher, attr):
                 #print record  # DEBUG
