@@ -370,9 +370,9 @@ class PluginOne(IPlugin):
     def build_query(self, max_depth):
         # Get the topic (depth 0)
         i = 0
-        cypher = ( "MATCH (topic:attribute) \n"
-                   "WHERE id(topic) IN {TOPIC} \n"
-                   "WITH topic as src, collect(topic) as nodes0 \n")
+        cypher = ( "MATCH (topics:attribute) \n"
+                   "WHERE id(topics) IN {TOPICS} \n"
+                   "WITH topics as src, collect(topics) as nodes0 \n")
         # Get the first depth (where we don't get any relationships carried through
         if max_depth > 0:
             i = 1

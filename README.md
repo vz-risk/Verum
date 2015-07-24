@@ -36,7 +36,7 @@ Run the following within your python code or at a python console to initialize t
 # import imp to load verum
 import imp
 # set verum location
-LOCATION = "/Users/v685573/Documents/Development/verum/"
+LOCATION = "~/Documents/Development/verum/"
 # import verum
 fp, pathname, description = imp.find_module("verum", [LOCATION])
 Verum = imp.load_module("verum", fp, pathname, description)
