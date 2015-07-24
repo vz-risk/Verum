@@ -252,7 +252,7 @@ class PluginOne(IPlugin):
         tx.commit()
 
 
-    def query(self, topic, max_depth=4, dont_follow=['enrichment', 'classification'], config=None):
+    def query(self, topic, max_depth=3, dont_follow=['enrichment', 'classification'], config=None):
         """
 
             :param topic: a  graph to return the context of.  At least one node ID in topic \
